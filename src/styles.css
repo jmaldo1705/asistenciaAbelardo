@@ -1,1 +1,81 @@
-/* You can add global styles to this file, and also import other style files */
+/* Estilos globales de la aplicación */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  /* Colores patrióticos de Colombia - Bandera */
+  background: #f5f7fa;
+  background-image: 
+    linear-gradient(135deg, rgba(252, 209, 22, 0.15) 0%, rgba(206, 17, 38, 0.15) 100%),
+    radial-gradient(circle at 20% 50%, rgba(0, 56, 147, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(252, 209, 22, 0.12) 0%, transparent 50%);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  color: #1e293b;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(99, 102, 241, 0.02) 2px,
+      rgba(99, 102, 241, 0.02) 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(168, 85, 247, 0.02) 2px,
+      rgba(168, 85, 247, 0.02) 4px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Para asegurar que el contenido esté por encima del fondo */
+router-outlet + * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Responsive global */
+@media (max-width: 768px) {
+  body {
+    padding: 1rem 0.5rem;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 0.5rem 0.25rem;
+    font-size: 13px;
+  }
+}
+
+/* Asegurar que los elementos táctiles sean accesibles (mínimo 44px) */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .btn,
+  input[type="button"],
+  input[type="submit"],
+  a.btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+

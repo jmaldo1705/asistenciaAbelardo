@@ -1,0 +1,88 @@
+<div class="container">
+  <div class="header">
+    <h1>📋 Registro de Asistencia</h1>
+    <button class="btn-secondary" (click)="irAListado()">
+      Ver Listado de Asistencias
+    </button>
+  </div>
+
+  <!-- Mensaje de notificación -->
+  <div *ngIf="mostrarMensaje" 
+       [class]="'mensaje ' + (tipoMensaje === 'success' ? 'mensaje-exito' : 'mensaje-error')">
+    {{ mensaje }}
+  </div>
+
+  <form (ngSubmit)="onSubmit()" #asistenciaForm="ngForm">
+    <div class="form-group">
+      <label for="nombre">Nombre *</label>
+      <input
+        type="text"
+        id="nombre"
+        name="nombre"
+        [(ngModel)]="asistencia.nombre"
+        required
+        placeholder="Ingrese su nombre"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="apellido">Apellido *</label>
+      <input
+        type="text"
+        id="apellido"
+        name="apellido"
+        [(ngModel)]="asistencia.apellido"
+        required
+        placeholder="Ingrese su apellido"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email *</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        [(ngModel)]="asistencia.email"
+        required
+        email
+        placeholder="ejemplo@correo.com"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="observaciones">Observaciones</label>
+      <textarea
+        id="observaciones"
+        name="observaciones"
+        [(ngModel)]="asistencia.observaciones"
+        rows="4"
+        placeholder="Comentarios adicionales (opcional)"
+        class="form-control"
+      ></textarea>
+    </div>
+
+    <div class="form-group checkbox-group">
+      <label>
+        <input
+          type="checkbox"
+          name="presente"
+          [(ngModel)]="asistencia.presente"
+        />
+        <span>Marcar como presente</span>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!asistenciaForm.form.valid">
+        Registrar Asistencia
+      </button>
+      <button type="button" class="btn-secondary" (click)="limpiarFormulario()">
+        Limpiar
+      </button>
+    </div>
+  </form>
+</div>

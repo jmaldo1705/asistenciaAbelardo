@@ -1,0 +1,305 @@
+<div class="container">
+  <!-- Encabezado con estadísticas -->
+  <div class="header">
+    <!-- Banner del evento con imágenes -->
+    <div class="event-banner">
+      <div class="banner-images">
+        <img src="assets/abelardo.png" alt="Abelardo de la Espriella" class="leader-photo">
+        <div class="event-title-section">
+          <h1>Convención Nacional Defensores de la Patria</h1>
+          <p class="event-subtitle">¡COLOMBIA ESCUCHARÁ LO DURO QUE RUGEN LOS TIGRES!</p>
+          <div class="event-details">
+            <span class="event-date">📅 Lunes 3 de Noviembre - 3:00 p.m.</span>
+            <span class="event-location">📍 Movistar Arena - Bogotá</span>
+          </div>
+          <p class="event-leader">Abelardo de la Espriella - Nuestro Máximo Líder</p>
+        </div>
+        <img src="assets/tigre.png" alt="Tigre" class="tiger-image">
+      </div>
+    </div>
+
+    <!-- Botón de cerrar sesión -->
+    <div class="logout-section">
+      <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
+        🚪 Cerrar Sesión
+      </button>
+    </div>
+
+    <div class="stats-cards">
+      <div class="stat-card total">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <div class="stat-number">{{ estadisticas.total }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+      <div class="stat-card confirmed">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <div class="stat-number">{{ estadisticas.confirmados }}</div>
+          <div class="stat-label">Confirmados</div>
+        </div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-info">
+          <div class="stat-number">{{ estadisticas.pendientes }}</div>
+          <div class="stat-label">Pendientes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botón para agregar nuevo coordinador -->
+  <div class="action-bar">
+    <button class="btn-nuevo" (click)="abrirModalNuevo()">
+      ➕ Agregar Coordinador
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>🏙️ Municipio:</label>
+      <input 
+        type="text" 
+        [(ngModel)]="filtroMunicipio" 
+        placeholder="Buscar por municipio..."
+        class="filter-input">
+    </div>
+    <div class="filter-group">
+      <label>📊 Estado:</label>
+      <select [(ngModel)]="filtroEstado" class="filter-select">
+        <option value="todos">Todos</option>
+        <option value="confirmados">Confirmados</option>
+        <option value="pendientes">Pendientes</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabla de coordinadores -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Municipio</th>
+          <th>Coordinador</th>
+          <th>Celular</th>
+          <th>Estado</th>
+          <th>Invitados</th>
+          <th>Fecha Llamada</th>
+          <th>Observaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let coordinador of coordinadoresFiltrados" 
+            [class.confirmado-row]="coordinador.confirmado">
+          <td><strong>{{ coordinador.municipio }}</strong></td>
+          <td>{{ coordinador.nombreCompleto }}</td>
+          <td>
+            <a href="tel:{{ coordinador.celular }}" class="phone-link">
+              📱 {{ coordinador.celular }}
+            </a>
+          </td>
+          <td>
+            <span class="badge" [class.badge-success]="coordinador.confirmado" [class.badge-pending]="!coordinador.confirmado">
+              {{ coordinador.confirmado ? '✅ Confirmado' : '⏳ Pendiente' }}
+            </span>
+          </td>
+          <td class="invitados-cell">
+            <span class="invitados-number">{{ coordinador.numeroInvitados }}</span>
+          </td>
+          <td class="fecha-cell">{{ formatearFecha(coordinador.fechaLlamada) }}</td>
+          <td class="observaciones-cell">{{ coordinador.observaciones || '-' }}</td>
+          <td>
+            <div class="action-buttons">
+              <button 
+                *ngIf="!coordinador.confirmado"
+                class="btn btn-primary" 
+                (click)="abrirModalConfirmacion(coordinador)"
+                title="Confirmar llamada">
+                ✓
+              </button>
+              <button 
+                *ngIf="coordinador.confirmado"
+                class="btn btn-warning" 
+                (click)="desmarcarConfirmacion(coordinador)"
+                title="Desmarcar confirmación">
+                ↺
+              </button>
+              <button 
+                class="btn btn-info" 
+                (click)="verInvitados(coordinador)"
+                [disabled]="!coordinador.confirmado"
+                title="Ver/Agregar invitados">
+                👥
+              </button>
+              <button 
+                class="btn btn-danger" 
+                (click)="eliminarCoordinador(coordinador)"
+                title="Eliminar">
+                <span class="icon-delete">🗑</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="coordinadoresFiltrados.length === 0">
+          <td colspan="8" class="empty-message">
+            No se encontraron coordinadores
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal de confirmación de llamada -->
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📞 Confirmar Llamada</h2>
+      <button class="close-btn" (click)="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body" *ngIf="coordinadorSeleccionado">
+      <div class="modal-info">
+        <p><strong>Municipio:</strong> {{ coordinadorSeleccionado.municipio }}</p>
+        <p><strong>Coordinador:</strong> {{ coordinadorSeleccionado.nombreCompleto }}</p>
+        <p><strong>Celular:</strong> {{ coordinadorSeleccionado.celular }}</p>
+      </div>
+      
+      <div class="form-group">
+        <label>¿Cuántos invitados confirmó?</label>
+        <input 
+          type="number" 
+          [(ngModel)]="numeroInvitados" 
+          min="0"
+          class="form-control"
+          placeholder="Número de invitados">
+      </div>
+      
+      <div class="form-group">
+        <label>Observaciones</label>
+        <textarea 
+          [(ngModel)]="observaciones" 
+          rows="4"
+          class="form-control"
+          placeholder="Notas adicionales de la llamada..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn btn-success" (click)="confirmarLlamada()">✅ Confirmar Llamada</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para nuevo coordinador -->
+<div class="modal-overlay" *ngIf="mostrarModalNuevo" (click)="cerrarModalNuevo()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>➕ Nuevo Coordinador</h2>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Municipio *</label>
+        <input 
+          type="text" 
+          [(ngModel)]="nuevoCoordinador.municipio" 
+          class="form-control"
+          placeholder="Nombre del municipio">
+      </div>
+      
+      <div class="form-group">
+        <label>Nombre Completo *</label>
+        <input 
+          type="text" 
+          [(ngModel)]="nuevoCoordinador.nombreCompleto" 
+          class="form-control"
+          placeholder="Nombre completo del coordinador">
+      </div>
+      
+      <div class="form-group">
+        <label>Celular *</label>
+        <input 
+          type="tel" 
+          [(ngModel)]="nuevoCoordinador.celular" 
+          class="form-control"
+          placeholder="Número de celular">
+      </div>
+      
+      <p class="form-note">* Campos obligatorios</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalNuevo()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarNuevoCoordinador()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para eliminar coordinador -->
+<div class="modal-overlay" *ngIf="mostrarModalEliminar" (click)="cerrarModalEliminar()">
+  <div class="modal-content modal-confirm" (click)="$event.stopPropagation()">
+    <div class="modal-header modal-header-danger">
+      <h2>⚠️ Confirmar Eliminación</h2>
+      <button class="close-btn" (click)="cerrarModalEliminar()">✕</button>
+    </div>
+    <div class="modal-body" *ngIf="coordinadorAEliminar">
+      <div class="confirm-icon">
+        <span class="icon-warning">🗑️</span>
+      </div>
+      <p class="confirm-message">
+        ¿Está seguro de que desea eliminar a este coordinador?
+      </p>
+      <div class="confirm-details">
+        <p><strong>Municipio:</strong> {{ coordinadorAEliminar.municipio }}</p>
+        <p><strong>Coordinador:</strong> {{ coordinadorAEliminar.nombreCompleto }}</p>
+        <p><strong>Celular:</strong> {{ coordinadorAEliminar.celular }}</p>
+        <p *ngIf="coordinadorAEliminar.confirmado" class="warning-text">
+          ⚠️ Este coordinador tiene {{ coordinadorAEliminar.numeroInvitados }} invitados confirmados
+        </p>
+      </div>
+      <p class="confirm-warning">
+        <strong>Esta acción no se puede deshacer.</strong>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalEliminar()">Cancelar</button>
+      <button class="btn btn-danger" (click)="confirmarEliminar()">
+        🗑️ Sí, Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para desmarcar -->
+<div class="modal-overlay" *ngIf="mostrarModalDesmarcar" (click)="cerrarModalDesmarcar()">
+  <div class="modal-content modal-confirm" (click)="$event.stopPropagation()">
+    <div class="modal-header modal-header-warning">
+      <h2>⚠️ Desmarcar Confirmación</h2>
+      <button class="close-btn" (click)="cerrarModalDesmarcar()">✕</button>
+    </div>
+    <div class="modal-body" *ngIf="coordinadorADesmarcar">
+      <div class="confirm-icon">
+        <span class="icon-warning">↺</span>
+      </div>
+      <p class="confirm-message">
+        ¿Está seguro de que desea desmarcar la confirmación de llamada?
+      </p>
+      <div class="confirm-details">
+        <p><strong>Municipio:</strong> {{ coordinadorADesmarcar.municipio }}</p>
+        <p><strong>Coordinador:</strong> {{ coordinadorADesmarcar.nombreCompleto }}</p>
+        <p><strong>Invitados registrados:</strong> {{ coordinadorADesmarcar.numeroInvitados }}</p>
+      </div>
+      <p class="confirm-warning">
+        Esto marcará al coordinador como "Pendiente" nuevamente y borrará la fecha de llamada.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalDesmarcar()">Cancelar</button>
+      <button class="btn btn-warning" (click)="confirmarDesmarcar()">
+        ↺ Sí, Desmarcar
+      </button>
+    </div>
+  </div>
+</div>

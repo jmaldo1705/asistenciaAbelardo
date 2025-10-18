@@ -1,0 +1,107 @@
+<div class="container">
+  <div class="header">
+    <h1>📊 Listado de Asistencias</h1>
+    <button class="btn-primary" (click)="irAFormulario()">
+      + Registrar Nueva Asistencia
+    </button>
+  </div>
+
+  <!-- Mensaje de notificación -->
+  <div *ngIf="mostrarMensaje" 
+       [class]="'mensaje ' + (tipoMensaje === 'success' ? 'mensaje-exito' : 'mensaje-error')">
+    {{ mensaje }}
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros">
+    <div class="filtro-grupo">
+      <label for="filtroNombre">Buscar por nombre o apellido:</label>
+      <input
+        type="text"
+        id="filtroNombre"
+        [(ngModel)]="filtroNombre"
+        (input)="aplicarFiltros()"
+        placeholder="Escriba para filtrar..."
+        class="form-control"
+      />
+    </div>
+
+    <div class="filtro-grupo">
+      <label for="filtroPresencia">Filtrar por estado:</label>
+      <select
+        id="filtroPresencia"
+        [(ngModel)]="filtroPresencia"
+        (change)="aplicarFiltros()"
+        class="form-control"
+      >
+        <option value="todos">Todos</option>
+        <option value="presente">Presentes</option>
+        <option value="ausente">Ausentes</option>
+      </select>
+    </div>
+
+    <button class="btn-secondary" (click)="limpiarFiltros()">
+      Limpiar Filtros
+    </button>
+  </div>
+
+  <!-- Indicador de carga -->
+  <div *ngIf="cargando" class="cargando">
+    <div class="spinner"></div>
+    <p>Cargando asistencias...</p>
+  </div>
+
+  <!-- Tabla de asistencias -->
+  <div *ngIf="!cargando" class="table-container">
+    <div *ngIf="asistenciasFiltradas.length === 0" class="sin-datos">
+      <p>No hay registros de asistencia para mostrar.</p>
+    </div>
+
+    <table *ngIf="asistenciasFiltradas.length > 0" class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Apellido</th>
+          <th>Email</th>
+          <th>Fecha y Hora</th>
+          <th>Estado</th>
+          <th>Observaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let asistencia of asistenciasFiltradas">
+          <td data-label="Nombre">{{ asistencia.nombre }}</td>
+          <td data-label="Apellido">{{ asistencia.apellido }}</td>
+          <td data-label="Email">{{ asistencia.email }}</td>
+          <td data-label="Fecha y Hora">{{ formatearFecha(asistencia.fechaHora) }}</td>
+          <td data-label="Estado">
+            <span [class]="asistencia.presente ? 'badge-presente' : 'badge-ausente'">
+              {{ asistencia.presente ? '✓ Presente' : '✗ Ausente' }}
+            </span>
+          </td>
+          <td data-label="Observaciones">{{ asistencia.observaciones || '-' }}</td>
+          <td data-label="Acciones">
+            <button 
+              class="btn-eliminar" 
+              (click)="eliminarAsistencia(asistencia.id)"
+              title="Eliminar registro">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Contador de registros -->
+  <div *ngIf="!cargando && asistenciasFiltradas.length > 0" class="contador">
+    <p>
+      Mostrando <strong>{{ asistenciasFiltradas.length }}</strong> 
+      {{ asistenciasFiltradas.length === 1 ? 'registro' : 'registros' }}
+      <span *ngIf="asistenciasFiltradas.length !== asistencias.length">
+        de <strong>{{ asistencias.length }}</strong> totales
+      </span>
+    </p>
+  </div>
+</div>
