@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Coordinador, Invitado, Estadisticas } from '../models/coordinador.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CoordinadorService {
-  private apiUrl = 'http://localhost:8080/api/coordinadores';
+  private apiUrl = `${environment.apiUrl}/coordinadores`;
 
   constructor(private http: HttpClient) { }
 
