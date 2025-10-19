@@ -18,10 +18,15 @@ export class CoordinadoresComponent implements OnInit {
   coordinadores: Coordinador[] = [];
   estadisticas: Estadisticas = { total: 0, confirmados: 0, pendientes: 0 };
   nombreUsuario: string = '';
+  Math = Math; // Para usar Math en el template
   
   // Filtros
   filtroMunicipio: string = '';
   filtroEstado: string = 'todos';
+  
+  // Paginación
+  paginaActual: number = 1;
+  itemsPorPagina: number = 10;
   
   // Modal de confirmación
   mostrarModal: boolean = false;
@@ -100,6 +105,34 @@ export class CoordinadoresComponent implements OnInit {
       if (a.confirmado === b.confirmado) return 0;
       return a.confirmado ? 1 : -1; // No confirmados primero
     });
+  }
+
+  get coordinadoresPaginados(): Coordinador[] {
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return this.coordinadoresFiltrados.slice(inicio, fin);
+  }
+
+  get totalPaginas(): number {
+    return Math.ceil(this.coordinadoresFiltrados.length / this.itemsPorPagina);
+  }
+
+  get paginasArray(): number[] {
+    return Array.from({ length: this.totalPaginas }, (_, i) => i + 1);
+  }
+
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas) {
+      this.paginaActual = pagina;
+      // Scroll suave al inicio de la tabla
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  cambiarItemsPorPagina(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.itemsPorPagina = parseInt(select.value);
+    this.paginaActual = 1; // Volver a la primera página
   }
 
   abrirModalConfirmacion(coordinador: Coordinador): void {

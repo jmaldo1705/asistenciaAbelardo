@@ -516,6 +516,93 @@ tbody tr:hover {
   75% { transform: scale(1.2) rotate(5deg); }
 }
 
+/* Paginación */
+.pagination-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.pagination-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-size-select {
+  padding: 6px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.page-size-select:hover {
+  border-color: #003893;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: #003893;
+  box-shadow: 0 0 0 3px rgba(0, 56, 147, 0.1);
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  padding: 8px 14px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  min-width: 40px;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #003893;
+  background: linear-gradient(135deg, #003893, #001F5C);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 56, 147, 0.2);
+}
+
+.page-btn.active {
+  background: linear-gradient(135deg, #003893, #001F5C);
+  color: white;
+  border-color: #003893;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 56, 147, 0.3);
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: #f3f4f6;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -914,6 +1001,28 @@ tbody tr:hover {
 
   .modal-footer .btn {
     width: 100%;
+  }
+
+  /* Paginación responsive */
+  .pagination-container {
+    padding: 15px;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.85rem;
+  }
+
+  .pagination-controls {
+    gap: 5px;
+  }
+
+  .page-btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    min-width: 35px;
   }
 }
 

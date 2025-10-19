@@ -98,7 +98,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let coordinador of coordinadoresFiltrados" 
+        <tr *ngFor="let coordinador of coordinadoresPaginados" 
             [class.confirmado-row]="coordinador.confirmado">
           <td><strong>{{ coordinador.municipio }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
@@ -156,6 +156,67 @@
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- Controles de paginación -->
+  <div class="pagination-container" *ngIf="coordinadoresFiltrados.length > 0">
+    <div class="pagination-info">
+      <span>Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} - 
+        {{ Math.min(paginaActual * itemsPorPagina, coordinadoresFiltrados.length) }} 
+        de {{ coordinadoresFiltrados.length }} coordinadores</span>
+      
+      <div class="items-per-page">
+        <label>Mostrar:</label>
+        <select (change)="cambiarItemsPorPagina($event)" [value]="itemsPorPagina" class="page-size-select">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span>por página</span>
+      </div>
+    </div>
+
+    <div class="pagination-controls" *ngIf="totalPaginas > 1">
+      <button 
+        class="page-btn" 
+        (click)="cambiarPagina(1)" 
+        [disabled]="paginaActual === 1"
+        title="Primera página">
+        ⟪
+      </button>
+      <button 
+        class="page-btn" 
+        (click)="cambiarPagina(paginaActual - 1)" 
+        [disabled]="paginaActual === 1"
+        title="Página anterior">
+        ‹
+      </button>
+
+      <button 
+        *ngFor="let pagina of paginasArray"
+        class="page-btn" 
+        [class.active]="pagina === paginaActual"
+        (click)="cambiarPagina(pagina)">
+        {{ pagina }}
+      </button>
+
+      <button 
+        class="page-btn" 
+        (click)="cambiarPagina(paginaActual + 1)" 
+        [disabled]="paginaActual === totalPaginas"
+        title="Página siguiente">
+        ›
+      </button>
+      <button 
+        class="page-btn" 
+        (click)="cambiarPagina(totalPaginas)" 
+        [disabled]="paginaActual === totalPaginas"
+        title="Última página">
+        ⟫
+      </button>
+    </div>
   </div>
 </div>
 
