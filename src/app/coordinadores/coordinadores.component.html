@@ -60,6 +60,9 @@
     <button class="btn-nuevo" (click)="abrirModalNuevo()">
       ➕ Agregar Coordinador
     </button>
+    <button class="btn-exportar" (click)="exportarAExcel()">
+      📊 Exportar a Excel
+    </button>
   </div>
 
   <!-- Filtros -->
@@ -109,7 +112,7 @@
           </td>
           <td>
             <span class="badge" [class.badge-success]="coordinador.confirmado" [class.badge-pending]="!coordinador.confirmado">
-              {{ coordinador.confirmado ? '✅ Confirmado' : '⏳ Pendiente' }}
+              {{ coordinador.confirmado ? 'Confirmado' : 'Pendiente' }}
             </span>
           </td>
           <td class="invitados-cell">

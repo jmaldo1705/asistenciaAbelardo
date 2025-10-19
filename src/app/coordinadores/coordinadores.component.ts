@@ -6,6 +6,7 @@ import { CoordinadorService } from '../services/coordinador.service';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 import { Coordinador, Estadisticas } from '../models/coordinador.model';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-coordinadores',
@@ -284,6 +285,80 @@ export class CoordinadoresComponent implements OnInit {
   formatearFecha(fecha: Date | undefined): string {
     if (!fecha) return 'No contactado';
     return new Date(fecha).toLocaleString('es-ES');
+  }
+
+  exportarAExcel(): void {
+    this.toastService.info('⏳ Generando archivo Excel...');
+    
+    // Obtener todos los coordinadores con sus invitados
+    this.coordinadorService.obtenerTodos().subscribe({
+      next: (coordinadores) => {
+        const datosExcel: any[] = [];
+        
+        coordinadores.forEach(coordinador => {
+          // Agregar fila del coordinador
+          datosExcel.push({
+            'Tipo': 'COORDINADOR',
+            'Municipio': coordinador.municipio,
+            'Nombre Completo': coordinador.nombreCompleto,
+            'Celular': coordinador.celular,
+            'Estado': coordinador.confirmado ? 'Confirmado' : 'Pendiente',
+            'Número de Invitados': coordinador.numeroInvitados,
+            'Fecha Llamada': this.formatearFecha(coordinador.fechaLlamada),
+            'Observaciones': coordinador.observaciones || '-'
+          });
+          
+          // Agregar filas de invitados si existen
+          if (coordinador.invitados && coordinador.invitados.length > 0) {
+            coordinador.invitados.forEach(invitado => {
+              datosExcel.push({
+                'Tipo': 'INVITADO',
+                'Municipio': coordinador.municipio,
+                'Nombre Completo': invitado.nombre,
+                'Celular': invitado.telefono,
+                'Cédula': invitado.cedula,
+                'Estado': 'Registrado',
+                'Coordinador': coordinador.nombreCompleto,
+                'Observaciones': '-'
+              });
+            });
+          }
+        });
+        
+        this.generarArchivoExcel(datosExcel);
+      },
+      error: (error) => {
+        this.toastService.error('Error al obtener datos para exportar');
+        console.error('Error:', error);
+      }
+    });
+  }
+
+  private generarArchivoExcel(datos: any[]): void {
+    // Crear libro de trabajo
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datos);
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Coordinadores e Invitados');
+    
+    // Ajustar ancho de columnas
+    const colWidths = [
+      { wch: 15 }, // Tipo
+      { wch: 20 }, // Municipio
+      { wch: 30 }, // Nombre Completo
+      { wch: 15 }, // Celular
+      { wch: 12 }, // Estado
+      { wch: 18 }, // Número de Invitados
+      { wch: 20 }, // Fecha Llamada
+      { wch: 30 }  // Observaciones
+    ];
+    ws['!cols'] = colWidths;
+    
+    // Generar archivo
+    const fecha = new Date().toISOString().split('T')[0];
+    const nombreArchivo = `Coordinadores_Invitados_${fecha}.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
+    
+    this.toastService.success('✅ Archivo Excel descargado exitosamente');
   }
 
   logout(): void {

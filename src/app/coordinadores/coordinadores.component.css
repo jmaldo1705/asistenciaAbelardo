@@ -236,6 +236,8 @@
   margin-bottom: 20px;
   display: flex;
   justify-content: flex-end;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .btn-nuevo {
@@ -258,6 +260,28 @@
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
+}
+
+.btn-exportar {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-exportar:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
 }
 
 /* Filtros */
@@ -927,9 +951,11 @@ tbody tr:hover {
   /* Botón agregar coordinador */
   .action-bar {
     justify-content: stretch;
+    flex-direction: column;
   }
 
-  .btn-nuevo {
+  .btn-nuevo,
+  .btn-exportar {
     width: 100%;
     justify-content: center;
     padding: 12px 20px;
