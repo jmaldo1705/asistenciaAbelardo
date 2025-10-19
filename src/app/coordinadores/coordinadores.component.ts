@@ -6,7 +6,7 @@ import { CoordinadorService } from '../services/coordinador.service';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 import { Coordinador, Estadisticas } from '../models/coordinador.model';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 @Component({
   selector: 'app-coordinadores',
@@ -345,8 +345,6 @@ export class CoordinadoresComponent implements OnInit {
   private generarArchivoExcel(datos: any[]): void {
     // Crear libro de trabajo
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datos);
-    const wb: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Coordinadores e Invitados');
     
     // Ajustar ancho de columnas
     const colWidths = [
@@ -354,12 +352,123 @@ export class CoordinadoresComponent implements OnInit {
       { wch: 20 }, // Municipio
       { wch: 30 }, // Nombre Completo
       { wch: 15 }, // Celular
-      { wch: 12 }, // Estado
-      { wch: 18 }, // Número de Invitados
-      { wch: 20 }, // Fecha Llamada
+      { wch: 12 }, // Estado o Cédula
+      { wch: 18 }, // Número de Invitados o Estado
+      { wch: 20 }, // Fecha Llamada o Coordinador
       { wch: 30 }  // Observaciones
     ];
     ws['!cols'] = colWidths;
+    
+    // Obtener el rango de celdas
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    
+    // Aplicar estilos a las celdas de encabezado (primera fila)
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + '1';
+      if (!ws[address]) continue;
+      
+      ws[address].s = {
+        fill: { fgColor: { rgb: "003893" } },
+        font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, name: "Calibri" },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: "000000" } },
+          bottom: { style: "thin", color: { rgb: "000000" } },
+          left: { style: "thin", color: { rgb: "000000" } },
+          right: { style: "thin", color: { rgb: "000000" } }
+        }
+      };
+    }
+    
+    // Aplicar estilos a las filas de datos
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      const tipoCell = ws[XLSX.utils.encode_cell({ r: R, c: 0 })];
+      const tipo = tipoCell?.v;
+      
+      // Obtener el valor de estado (puede estar en diferentes columnas)
+      let estado = '';
+      const estadoCell4 = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
+      const estadoCell5 = ws[XLSX.utils.encode_cell({ r: R, c: 5 })];
+      
+      if (estadoCell4?.v === 'Confirmado' || estadoCell4?.v === 'Pendiente') {
+        estado = estadoCell4.v;
+      } else if (estadoCell5?.v === 'Confirmado' || estadoCell5?.v === 'Pendiente' || estadoCell5?.v === 'Registrado') {
+        estado = estadoCell5.v;
+      }
+      
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!ws[address]) continue;
+        
+        // Color de fondo según el tipo
+        let fillColor = "FFFFFF";
+        let fontBold = false;
+        
+        if (tipo === "COORDINADOR") {
+          if (estado === "Confirmado") {
+            fillColor = "D4EDDA"; // Verde claro
+          } else if (estado === "Pendiente") {
+            fillColor = "FFF3CD"; // Amarillo claro
+          }
+          fontBold = true;
+        } else if (tipo === "INVITADO") {
+          fillColor = "E7F3FF"; // Azul muy claro
+        }
+        
+        ws[address].s = {
+          fill: { fgColor: { rgb: fillColor } },
+          font: { 
+            sz: 11, 
+            name: "Calibri",
+            bold: fontBold
+          },
+          alignment: { 
+            horizontal: C === 2 ? "left" : "center",
+            vertical: "center",
+            wrapText: true
+          },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+        
+        // Estilo especial para la columna de Estado
+        const cellValue = ws[address].v;
+        if (cellValue === "Confirmado") {
+          ws[address].s.font = { 
+            ...ws[address].s.font, 
+            color: { rgb: "155724" }, 
+            bold: true 
+          };
+        } else if (cellValue === "Pendiente") {
+          ws[address].s.font = { 
+            ...ws[address].s.font, 
+            color: { rgb: "856404" }, 
+            bold: true 
+          };
+        } else if (cellValue === "Registrado") {
+          ws[address].s.font = { 
+            ...ws[address].s.font, 
+            color: { rgb: "004085" }, 
+            bold: true 
+          };
+        }
+      }
+    }
+    
+    // Configurar altura de filas
+    const rowHeights = [];
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      rowHeights.push({ hpx: R === 0 ? 30 : 25 });
+    }
+    ws['!rows'] = rowHeights;
+    
+    // Crear el libro y agregar la hoja
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Coordinadores e Invitados');
     
     // Generar archivo
     const fecha = new Date().toISOString().split('T')[0];
