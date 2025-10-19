@@ -124,8 +124,6 @@ export class CoordinadoresComponent implements OnInit {
   cambiarPagina(pagina: number): void {
     if (pagina >= 1 && pagina <= this.totalPaginas) {
       this.paginaActual = pagina;
-      // Scroll suave al inicio de la tabla
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
