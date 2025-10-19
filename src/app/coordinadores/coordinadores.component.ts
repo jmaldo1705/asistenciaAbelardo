@@ -101,10 +101,14 @@ export class CoordinadoresComponent implements OnInit {
       return coincideMunicipio && coincideEstado;
     });
 
-    // Ordenar: primero los NO confirmados, luego los confirmados
+    // Ordenar por: 1) Estado (pendientes primero), 2) Municipio alfabéticamente
     return filtrados.sort((a, b) => {
-      if (a.confirmado === b.confirmado) return 0;
-      return a.confirmado ? 1 : -1; // No confirmados primero
+      // Primero ordenar por estado (no confirmados primero)
+      if (a.confirmado !== b.confirmado) {
+        return a.confirmado ? 1 : -1;
+      }
+      // Si tienen el mismo estado, ordenar por municipio alfabéticamente
+      return a.municipio.localeCompare(b.municipio);
     });
   }
 
