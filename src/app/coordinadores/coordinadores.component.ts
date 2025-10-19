@@ -134,6 +134,10 @@ export class CoordinadoresComponent implements OnInit {
     this.paginaActual = 1; // Volver a la primera página
   }
 
+  resetearPaginacion(): void {
+    this.paginaActual = 1;
+  }
+
   abrirModalConfirmacion(coordinador: Coordinador): void {
     this.coordinadorSeleccionado = coordinador;
     this.numeroInvitados = coordinador.numeroInvitados || 0;
