@@ -120,6 +120,20 @@
   display: block;
 }
 
+.defensores-logo-banner {
+  margin: 10px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.defensores-image-banner {
+  max-width: 350px;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
 .event-subtitle {
   font-size: 1.3rem;
   font-weight: bold;
@@ -781,6 +795,10 @@ tbody tr:hover {
     font-size: 1.4rem;
   }
 
+  .defensores-image-banner {
+    max-width: 250px;
+  }
+
   .event-subtitle {
     font-size: 1rem;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
@@ -937,6 +955,10 @@ tbody tr:hover {
 
   .title-line-2 {
     font-size: 1.25rem;
+  }
+
+  .defensores-image-banner {
+    max-width: 200px;
   }
 
   .event-subtitle {
