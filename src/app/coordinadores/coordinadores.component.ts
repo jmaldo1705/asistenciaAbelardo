@@ -65,6 +65,12 @@ export class CoordinadoresComponent implements OnInit {
     private router: Router
   ) { }
 
+  // Método helper para normalizar estados del backend
+  normalizarEstado(estado: string | undefined): string {
+    if (!estado) return '';
+    return estado.toLowerCase();
+  }
+
   ngOnInit(): void {
     this.nombreUsuario = this.authService.getNombreUsuario();
     this.cargarCoordinadores();
@@ -102,18 +108,33 @@ export class CoordinadoresComponent implements OnInit {
         coord.celular.includes(this.filtroMunicipio) ||
         (coord.observaciones && coord.observaciones.toLowerCase().includes(this.filtroMunicipio.toLowerCase()));
 
+      const estadoNormalizado = this.normalizarEstado(coord.estado);
       const coincideEstado = this.filtroEstado === 'todos' ||
-        (this.filtroEstado === 'confirmados' && coord.confirmado) ||
-        (this.filtroEstado === 'pendientes' && !coord.confirmado);
+        (this.filtroEstado === 'confirmados' && (estadoNormalizado === 'confirmado' || (!coord.estado && coord.confirmado))) ||
+        (this.filtroEstado === 'pendientes' && (estadoNormalizado === 'pendiente' || (!coord.estado && !coord.confirmado))) ||
+        (this.filtroEstado === 'no_asiste' && estadoNormalizado === 'no_asiste') ||
+        (this.filtroEstado === 'no_contesta' && estadoNormalizado === 'no_contesta');
 
       return coincideMunicipio && coincideEstado;
     });
 
-    // Ordenar por: 1) Estado (pendientes primero), 2) Municipio alfabéticamente
+    // Ordenar por: 1) Estado (pendientes, no_contesta, no_asiste, confirmados), 2) Municipio alfabéticamente
     return filtrados.sort((a, b) => {
-      // Primero ordenar por estado (no confirmados primero)
-      if (a.confirmado !== b.confirmado) {
-        return a.confirmado ? 1 : -1;
+      // Definir orden de estados
+      const estadoOrden: { [key: string]: number } = {
+        'pendiente': 0,
+        'no_contesta': 1,
+        'no_asiste': 2,
+        'confirmado': 3
+      };
+
+      // Obtener estado actual o inferirlo del campo confirmado
+      const estadoA = this.normalizarEstado(a.estado) || (a.confirmado ? 'confirmado' : 'pendiente');
+      const estadoB = this.normalizarEstado(b.estado) || (b.confirmado ? 'confirmado' : 'pendiente');
+
+      // Primero ordenar por estado
+      if (estadoA !== estadoB) {
+        return estadoOrden[estadoA] - estadoOrden[estadoB];
       }
       // Si tienen el mismo estado, ordenar por municipio alfabéticamente
       return a.municipio.localeCompare(b.municipio);
@@ -189,6 +210,52 @@ export class CoordinadoresComponent implements OnInit {
       },
       error: (error) => {
         this.toastService.error('Error al confirmar llamada');
+        console.error('Error:', error);
+      }
+    });
+  }
+
+  marcarNoAsiste(): void {
+    if (!this.coordinadorSeleccionado) return;
+
+    const coordinadorId = this.coordinadorSeleccionado.id!;
+
+    this.coordinadorService.actualizarEstado(
+      coordinadorId,
+      'no_asiste',
+      this.observaciones
+    ).subscribe({
+      next: () => {
+        this.toastService.warning('❌ Marcado como No Asiste');
+        this.cerrarModal();
+        this.cargarCoordinadores();
+        this.cargarEstadisticas();
+      },
+      error: (error) => {
+        this.toastService.error('Error al actualizar estado');
+        console.error('Error:', error);
+      }
+    });
+  }
+
+  marcarNoContesta(): void {
+    if (!this.coordinadorSeleccionado) return;
+
+    const coordinadorId = this.coordinadorSeleccionado.id!;
+
+    this.coordinadorService.actualizarEstado(
+      coordinadorId,
+      'no_contesta',
+      this.observaciones
+    ).subscribe({
+      next: () => {
+        this.toastService.info('📵 Marcado como No Contesta');
+        this.cerrarModal();
+        this.cargarCoordinadores();
+        this.cargarEstadisticas();
+      },
+      error: (error) => {
+        this.toastService.error('Error al actualizar estado');
         console.error('Error:', error);
       }
     });
@@ -493,6 +560,12 @@ export class CoordinadoresComponent implements OnInit {
 
   abrirModalEditar(coordinador: Coordinador): void {
     this.coordinadorEditando = { ...coordinador };
+    // Normalizar el estado del backend y si no tiene estado, inferirlo del campo confirmado
+    if (this.coordinadorEditando.estado) {
+      this.coordinadorEditando.estado = this.normalizarEstado(this.coordinadorEditando.estado) as any;
+    } else {
+      this.coordinadorEditando.estado = coordinador.confirmado ? 'confirmado' : 'pendiente';
+    }
     if (coordinador.fechaLlamada) {
       const fecha = new Date(coordinador.fechaLlamada);
       // Formato compatible con <input type="datetime-local">
@@ -531,7 +604,20 @@ export class CoordinadoresComponent implements OnInit {
       this.coordinadorEditando.fechaLlamada = undefined;
     }
 
-    this.coordinadorService.actualizar(this.coordinadorEditando.id!, this.coordinadorEditando).subscribe({
+    // Actualizar el campo confirmado basado en el estado
+    if (this.coordinadorEditando.estado === 'confirmado') {
+      this.coordinadorEditando.confirmado = true;
+    } else {
+      this.coordinadorEditando.confirmado = false;
+    }
+
+    // Convertir el estado a mayúsculas para el backend
+    const coordinadorParaEnviar = {
+      ...this.coordinadorEditando,
+      estado: this.coordinadorEditando.estado?.toUpperCase()
+    };
+
+    this.coordinadorService.actualizar(this.coordinadorEditando.id!, coordinadorParaEnviar as Coordinador).subscribe({
       next: () => {
         this.toastService.success('Coordinador actualizado exitosamente');
         this.cargarCoordinadores();

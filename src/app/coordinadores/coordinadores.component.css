@@ -216,6 +216,17 @@
   border-left: 4px solid #CE1126;
 }
 
+/* Nuevas variantes para estados específicos */
+.stat-card.no-asiste {
+  border-left: 4px solid #ef4444;
+  background: white;
+}
+
+.stat-card.no-contesta {
+  border-left: 4px solid #f59e0b;
+  background: white;
+}
+
 .stat-icon {
   font-size: 2.5rem;
 }
@@ -386,6 +397,18 @@ tbody tr:hover {
 
 .badge-pending {
   background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+/* No Asiste */
+.badge-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+/* No Contesta */
+.badge-warning {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   color: white;
 }
 

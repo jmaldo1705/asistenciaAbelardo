@@ -47,6 +47,13 @@ export class CoordinadorService {
     return this.http.put<Coordinador>(`${this.apiUrl}/${id}/desmarcar`, {});
   }
 
+  actualizarEstado(id: number, estado: string, observaciones?: string): Observable<Coordinador> {
+    return this.http.put<Coordinador>(`${this.apiUrl}/${id}/estado`, {
+      estado,
+      observaciones
+    });
+  }
+
   agregarInvitado(coordinadorId: number, invitado: Invitado): Observable<Coordinador> {
     return this.http.post<Coordinador>(`${this.apiUrl}/${coordinadorId}/invitados`, invitado);
   }

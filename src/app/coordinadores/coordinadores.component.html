@@ -52,6 +52,20 @@
           <div class="stat-label">Pendientes</div>
         </div>
       </div>
+      <div class="stat-card no-asiste">
+        <div class="stat-icon">❌</div>
+        <div class="stat-info">
+          <div class="stat-number">{{ estadisticas.noAsiste || 0 }}</div>
+          <div class="stat-label">No Asiste</div>
+        </div>
+      </div>
+      <div class="stat-card no-contesta">
+        <div class="stat-icon">📵</div>
+        <div class="stat-info">
+          <div class="stat-number">{{ estadisticas.noContesta || 0 }}</div>
+          <div class="stat-label">No Contesta</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -80,8 +94,10 @@
       <label>📊 Estado:</label>
       <select [(ngModel)]="filtroEstado" (ngModelChange)="resetearPaginacion()" class="filter-select">
         <option value="todos">Todos</option>
-        <option value="confirmados">Confirmados</option>
-        <option value="pendientes">Pendientes</option>
+        <option value="confirmados">✅ Confirmados</option>
+        <option value="pendientes">⏳ Pendientes</option>
+        <option value="no_asiste">❌ No Asiste</option>
+        <option value="no_contesta">📵 No Contesta</option>
       </select>
     </div>
   </div>
@@ -112,8 +128,18 @@
             </a>
           </td>
           <td>
-            <span class="badge" [class.badge-success]="coordinador.confirmado" [class.badge-pending]="!coordinador.confirmado">
-              {{ coordinador.confirmado ? 'Confirmado' : 'Pendiente' }}
+            <span class="badge"
+                  [class.badge-success]="normalizarEstado(coordinador.estado) === 'confirmado' || (!coordinador.estado && coordinador.confirmado)"
+                  [class.badge-pending]="normalizarEstado(coordinador.estado) === 'pendiente' || (!coordinador.estado && !coordinador.confirmado)"
+                  [class.badge-danger]="normalizarEstado(coordinador.estado) === 'no_asiste'"
+                  [class.badge-warning]="normalizarEstado(coordinador.estado) === 'no_contesta'">
+              <ng-container [ngSwitch]="normalizarEstado(coordinador.estado) || (coordinador.confirmado ? 'confirmado' : 'pendiente')">
+                <span *ngSwitchCase="'confirmado'">✅ Confirmado</span>
+                <span *ngSwitchCase="'pendiente'">⏳ Pendiente</span>
+                <span *ngSwitchCase="'no_asiste'">❌ No Asiste</span>
+                <span *ngSwitchCase="'no_contesta'">📵 No Contesta</span>
+                <span *ngSwitchDefault>⏳ Pendiente</span>
+              </ng-container>
             </span>
           </td>
           <td class="invitados-cell">
@@ -265,6 +291,8 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn btn-danger" (click)="marcarNoAsiste()">❌ No Asiste</button>
+      <button class="btn btn-warning" (click)="marcarNoContesta()">📵 No Contesta</button>
       <button class="btn btn-success" (click)="confirmarLlamada()">✅ Confirmar Llamada</button>
     </div>
   </div>
@@ -431,6 +459,16 @@
           rows="4"
           class="form-control"
           placeholder="Observaciones adicionales..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Estado</label>
+        <select [(ngModel)]="coordinadorEditando.estado" class="form-control">
+          <option value="pendiente">⏳ Pendiente</option>
+          <option value="confirmado">✅ Confirmado</option>
+          <option value="no_asiste">❌ No Asiste</option>
+          <option value="no_contesta">📵 No Contesta</option>
+        </select>
       </div>
 
       <p class="form-note">* Campos obligatorios</p>

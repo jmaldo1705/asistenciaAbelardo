@@ -8,6 +8,7 @@ export interface Coordinador {
   numeroInvitados: number;
   observaciones?: string;
   invitados?: Invitado[];
+  estado?: 'pendiente' | 'confirmado' | 'no_asiste' | 'no_contesta';
 }
 
 export interface Invitado {
@@ -22,4 +23,6 @@ export interface Estadisticas {
   total: number;
   confirmados: number;
   pendientes: number;
+  noAsiste?: number;
+  noContesta?: number;
 }
