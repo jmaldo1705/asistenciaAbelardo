@@ -81,6 +81,11 @@ export class CoordinadoresComponent implements OnInit {
     this.coordinadorService.obtenerTodos().subscribe({
       next: (data) => {
         this.coordinadores = data;
+        // Debug: ver estados de coordinadores
+        const estadosUnicos = [...new Set(data.map(c => c.estado))];
+        console.log('Estados únicos en coordinadores:', estadosUnicos);
+        const noAsiste = data.filter(c => c.estado && c.estado.toLowerCase() === 'no_asiste');
+        console.log('Coordinadores con NO_ASISTE:', noAsiste.length);
       },
       error: (error) => {
         this.toastService.error('Error al cargar coordinadores');
@@ -109,6 +114,12 @@ export class CoordinadoresComponent implements OnInit {
         (coord.observaciones && coord.observaciones.toLowerCase().includes(this.filtroMunicipio.toLowerCase()));
 
       const estadoNormalizado = this.normalizarEstado(coord.estado);
+      
+      // Debug: descomentar para ver los estados
+      if (this.filtroEstado === 'no_asiste' && coord.estado) {
+        console.log('Municipio:', coord.municipio, 'Estado original:', coord.estado, 'Normalizado:', estadoNormalizado);
+      }
+      
       const coincideEstado = this.filtroEstado === 'todos' ||
         (this.filtroEstado === 'confirmados' && (estadoNormalizado === 'confirmado' || (!coord.estado && coord.confirmado))) ||
         (this.filtroEstado === 'pendientes' && (estadoNormalizado === 'pendiente' || (!coord.estado && !coord.confirmado))) ||
