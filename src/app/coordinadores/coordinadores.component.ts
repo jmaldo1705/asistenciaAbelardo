@@ -81,11 +81,6 @@ export class CoordinadoresComponent implements OnInit {
     this.coordinadorService.obtenerTodos().subscribe({
       next: (data) => {
         this.coordinadores = data;
-        // Debug: ver estados de coordinadores
-        const estadosUnicos = [...new Set(data.map(c => c.estado))];
-        console.log('Estados únicos en coordinadores:', estadosUnicos);
-        const noAsiste = data.filter(c => c.estado && c.estado.toLowerCase() === 'no_asiste');
-        console.log('Coordinadores con NO_ASISTE:', noAsiste.length);
       },
       error: (error) => {
         this.toastService.error('Error al cargar coordinadores');
@@ -114,11 +109,6 @@ export class CoordinadoresComponent implements OnInit {
         (coord.observaciones && coord.observaciones.toLowerCase().includes(this.filtroMunicipio.toLowerCase()));
 
       const estadoNormalizado = this.normalizarEstado(coord.estado);
-      
-      // Debug: descomentar para ver los estados
-      if (this.filtroEstado === 'no_asiste' && coord.estado) {
-        console.log('Municipio:', coord.municipio, 'Estado original:', coord.estado, 'Normalizado:', estadoNormalizado);
-      }
       
       const coincideEstado = this.filtroEstado === 'todos' ||
         (this.filtroEstado === 'confirmados' && (estadoNormalizado === 'confirmado' || (!coord.estado && coord.confirmado))) ||
@@ -381,6 +371,23 @@ export class CoordinadoresComponent implements OnInit {
     return new Date(fecha).toLocaleString('es-ES');
   }
 
+  obtenerEstadoTexto(coordinador: Coordinador): string {
+    const estadoNormalizado = this.normalizarEstado(coordinador.estado);
+    
+    switch(estadoNormalizado) {
+      case 'confirmado':
+        return 'Confirmado';
+      case 'pendiente':
+        return 'Pendiente';
+      case 'no_asiste':
+        return 'No Asiste';
+      case 'no_contesta':
+        return 'No Contesta';
+      default:
+        return coordinador.confirmado ? 'Confirmado' : 'Pendiente';
+    }
+  }
+
   exportarAExcel(): void {
     this.toastService.info('⏳ Generando archivo Excel...');
 
@@ -396,7 +403,7 @@ export class CoordinadoresComponent implements OnInit {
             'Municipio': coordinador.municipio,
             'Nombre Completo': coordinador.nombreCompleto,
             'Celular': coordinador.celular,
-            'Estado': coordinador.confirmado ? 'Confirmado' : 'Pendiente',
+            'Estado': this.obtenerEstadoTexto(coordinador),
             'Número de Invitados': coordinador.numeroInvitados,
             'Fecha Llamada': this.formatearFecha(coordinador.fechaLlamada),
             'Observaciones': coordinador.observaciones || '-'
@@ -476,9 +483,9 @@ export class CoordinadoresComponent implements OnInit {
       const estadoCell4 = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
       const estadoCell5 = ws[XLSX.utils.encode_cell({ r: R, c: 5 })];
 
-      if (estadoCell4?.v === 'Confirmado' || estadoCell4?.v === 'Pendiente') {
+      if (estadoCell4?.v === 'Confirmado' || estadoCell4?.v === 'Pendiente' || estadoCell4?.v === 'No Asiste' || estadoCell4?.v === 'No Contesta') {
         estado = estadoCell4.v;
-      } else if (estadoCell5?.v === 'Confirmado' || estadoCell5?.v === 'Pendiente' || estadoCell5?.v === 'Registrado') {
+      } else if (estadoCell5?.v === 'Confirmado' || estadoCell5?.v === 'Pendiente' || estadoCell5?.v === 'Registrado' || estadoCell5?.v === 'No Asiste' || estadoCell5?.v === 'No Contesta') {
         estado = estadoCell5.v;
       }
 
@@ -495,6 +502,10 @@ export class CoordinadoresComponent implements OnInit {
             fillColor = "D4EDDA"; // Verde claro
           } else if (estado === "Pendiente") {
             fillColor = "FFF3CD"; // Amarillo claro
+          } else if (estado === "No Asiste") {
+            fillColor = "F8D7DA"; // Rojo claro
+          } else if (estado === "No Contesta") {
+            fillColor = "FFE5CC"; // Naranja claro
           }
           fontBold = true;
         } else if (tipo === "INVITADO") {
@@ -533,6 +544,18 @@ export class CoordinadoresComponent implements OnInit {
           ws[address].s.font = {
             ...ws[address].s.font,
             color: { rgb: "856404" },
+            bold: true
+          };
+        } else if (cellValue === "No Asiste") {
+          ws[address].s.font = {
+            ...ws[address].s.font,
+            color: { rgb: "721C24" },
+            bold: true
+          };
+        } else if (cellValue === "No Contesta") {
+          ws[address].s.font = {
+            ...ws[address].s.font,
+            color: { rgb: "D97706" },
             bold: true
           };
         } else if (cellValue === "Registrado") {
