@@ -20,21 +20,21 @@ export class CoordinadoresComponent implements OnInit {
   estadisticas: Estadisticas = { total: 0, confirmados: 0, pendientes: 0 };
   nombreUsuario: string = '';
   Math = Math; // Para usar Math en el template
-  
+
   // Filtros
   filtroMunicipio: string = '';
   filtroEstado: string = 'todos';
-  
+
   // Paginación
   paginaActual: number = 1;
   itemsPorPagina: number = 10;
-  
+
   // Modal de confirmación
   mostrarModal: boolean = false;
   coordinadorSeleccionado: Coordinador | null = null;
   numeroInvitados: number = 0;
   observaciones: string = '';
-  
+
   // Modal de nuevo coordinador
   mostrarModalNuevo: boolean = false;
   nuevoCoordinador: Coordinador = {
@@ -44,14 +44,19 @@ export class CoordinadoresComponent implements OnInit {
     confirmado: false,
     numeroInvitados: 0
   };
-  
+
   // Modal de confirmación de eliminación
   mostrarModalEliminar: boolean = false;
   coordinadorAEliminar: Coordinador | null = null;
-  
+
   // Modal de confirmación de desmarcar
   mostrarModalDesmarcar: boolean = false;
   coordinadorADesmarcar: Coordinador | null = null;
+
+  // Modal de edición
+  mostrarModalEditar: boolean = false;
+  coordinadorEditando: Coordinador | null = null;
+  fechaLlamadaEdicion: string = '';
 
   constructor(
     private coordinadorService: CoordinadorService,
@@ -91,13 +96,16 @@ export class CoordinadoresComponent implements OnInit {
 
   get coordinadoresFiltrados(): Coordinador[] {
     const filtrados = this.coordinadores.filter(coord => {
-      const coincideMunicipio = !this.filtroMunicipio || 
-        coord.municipio.toLowerCase().includes(this.filtroMunicipio.toLowerCase());
-      
+      const coincideMunicipio = !this.filtroMunicipio ||
+        coord.municipio.toLowerCase().includes(this.filtroMunicipio.toLowerCase()) ||
+        coord.nombreCompleto.toLowerCase().includes(this.filtroMunicipio.toLowerCase()) ||
+        coord.celular.includes(this.filtroMunicipio) ||
+        (coord.observaciones && coord.observaciones.toLowerCase().includes(this.filtroMunicipio.toLowerCase()));
+
       const coincideEstado = this.filtroEstado === 'todos' ||
         (this.filtroEstado === 'confirmados' && coord.confirmado) ||
         (this.filtroEstado === 'pendientes' && !coord.confirmado);
-      
+
       return coincideMunicipio && coincideEstado;
     });
 
@@ -163,7 +171,7 @@ export class CoordinadoresComponent implements OnInit {
     }
 
     const coordinadorId = this.coordinadorSeleccionado.id!;
-    
+
     this.coordinadorService.confirmarLlamada(
       coordinadorId,
       this.numeroInvitados,
@@ -241,7 +249,7 @@ export class CoordinadoresComponent implements OnInit {
 
   confirmarDesmarcar(): void {
     if (!this.coordinadorADesmarcar) return;
-    
+
     this.coordinadorService.desmarcarConfirmacion(this.coordinadorADesmarcar.id!).subscribe({
       next: () => {
         this.toastService.success('↺ Confirmación desmarcada exitosamente');
@@ -269,7 +277,7 @@ export class CoordinadoresComponent implements OnInit {
 
   confirmarEliminar(): void {
     if (!this.coordinadorAEliminar) return;
-    
+
     this.coordinadorService.eliminar(this.coordinadorAEliminar.id!).subscribe({
       next: () => {
         this.toastService.success('🗑️ Coordinador eliminado exitosamente');
@@ -297,12 +305,12 @@ export class CoordinadoresComponent implements OnInit {
 
   exportarAExcel(): void {
     this.toastService.info('⏳ Generando archivo Excel...');
-    
+
     // Obtener todos los coordinadores con sus invitados
     this.coordinadorService.obtenerTodos().subscribe({
       next: (coordinadores) => {
         const datosExcel: any[] = [];
-        
+
         coordinadores.forEach(coordinador => {
           // Agregar fila del coordinador
           datosExcel.push({
@@ -315,7 +323,7 @@ export class CoordinadoresComponent implements OnInit {
             'Fecha Llamada': this.formatearFecha(coordinador.fechaLlamada),
             'Observaciones': coordinador.observaciones || '-'
           });
-          
+
           // Agregar filas de invitados si existen
           if (coordinador.invitados && coordinador.invitados.length > 0) {
             coordinador.invitados.forEach(invitado => {
@@ -332,7 +340,7 @@ export class CoordinadoresComponent implements OnInit {
             });
           }
         });
-        
+
         this.generarArchivoExcel(datosExcel);
       },
       error: (error) => {
@@ -345,7 +353,7 @@ export class CoordinadoresComponent implements OnInit {
   private generarArchivoExcel(datos: any[]): void {
     // Crear libro de trabajo
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datos);
-    
+
     // Ajustar ancho de columnas
     const colWidths = [
       { wch: 15 }, // Tipo
@@ -358,15 +366,15 @@ export class CoordinadoresComponent implements OnInit {
       { wch: 30 }  // Observaciones
     ];
     ws['!cols'] = colWidths;
-    
+
     // Obtener el rango de celdas
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    
+
     // Aplicar estilos a las celdas de encabezado (primera fila)
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const address = XLSX.utils.encode_col(C) + '1';
       if (!ws[address]) continue;
-      
+
       ws[address].s = {
         fill: { fgColor: { rgb: "003893" } },
         font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, name: "Calibri" },
@@ -379,31 +387,31 @@ export class CoordinadoresComponent implements OnInit {
         }
       };
     }
-    
+
     // Aplicar estilos a las filas de datos
     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
       const tipoCell = ws[XLSX.utils.encode_cell({ r: R, c: 0 })];
       const tipo = tipoCell?.v;
-      
+
       // Obtener el valor de estado (puede estar en diferentes columnas)
       let estado = '';
       const estadoCell4 = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
       const estadoCell5 = ws[XLSX.utils.encode_cell({ r: R, c: 5 })];
-      
+
       if (estadoCell4?.v === 'Confirmado' || estadoCell4?.v === 'Pendiente') {
         estado = estadoCell4.v;
       } else if (estadoCell5?.v === 'Confirmado' || estadoCell5?.v === 'Pendiente' || estadoCell5?.v === 'Registrado') {
         estado = estadoCell5.v;
       }
-      
+
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const address = XLSX.utils.encode_cell({ r: R, c: C });
         if (!ws[address]) continue;
-        
+
         // Color de fondo según el tipo
         let fillColor = "FFFFFF";
         let fontBold = false;
-        
+
         if (tipo === "COORDINADOR") {
           if (estado === "Confirmado") {
             fillColor = "D4EDDA"; // Verde claro
@@ -414,15 +422,15 @@ export class CoordinadoresComponent implements OnInit {
         } else if (tipo === "INVITADO") {
           fillColor = "E7F3FF"; // Azul muy claro
         }
-        
+
         ws[address].s = {
           fill: { fgColor: { rgb: fillColor } },
-          font: { 
-            sz: 11, 
+          font: {
+            sz: 11,
             name: "Calibri",
             bold: fontBold
           },
-          alignment: { 
+          alignment: {
             horizontal: C === 2 ? "left" : "center",
             vertical: "center",
             wrapText: true
@@ -434,52 +442,106 @@ export class CoordinadoresComponent implements OnInit {
             right: { style: "thin", color: { rgb: "CCCCCC" } }
           }
         };
-        
+
         // Estilo especial para la columna de Estado
         const cellValue = ws[address].v;
         if (cellValue === "Confirmado") {
-          ws[address].s.font = { 
-            ...ws[address].s.font, 
-            color: { rgb: "155724" }, 
-            bold: true 
+          ws[address].s.font = {
+            ...ws[address].s.font,
+            color: { rgb: "155724" },
+            bold: true
           };
         } else if (cellValue === "Pendiente") {
-          ws[address].s.font = { 
-            ...ws[address].s.font, 
-            color: { rgb: "856404" }, 
-            bold: true 
+          ws[address].s.font = {
+            ...ws[address].s.font,
+            color: { rgb: "856404" },
+            bold: true
           };
         } else if (cellValue === "Registrado") {
-          ws[address].s.font = { 
-            ...ws[address].s.font, 
-            color: { rgb: "004085" }, 
-            bold: true 
+          ws[address].s.font = {
+            ...ws[address].s.font,
+            color: { rgb: "004085" },
+            bold: true
           };
         }
       }
     }
-    
+
     // Configurar altura de filas
     const rowHeights = [];
     for (let R = range.s.r; R <= range.e.r; ++R) {
       rowHeights.push({ hpx: R === 0 ? 30 : 25 });
     }
     ws['!rows'] = rowHeights;
-    
+
     // Crear el libro y agregar la hoja
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Coordinadores e Invitados');
-    
+
     // Generar archivo
     const fecha = new Date().toISOString().split('T')[0];
     const nombreArchivo = `Coordinadores_Invitados_${fecha}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
-    
+
     this.toastService.success('✅ Archivo Excel descargado exitosamente');
   }
 
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  abrirModalEditar(coordinador: Coordinador): void {
+    this.coordinadorEditando = { ...coordinador };
+    if (coordinador.fechaLlamada) {
+      const fecha = new Date(coordinador.fechaLlamada);
+      // Formato compatible con <input type="datetime-local">
+      this.fechaLlamadaEdicion = fecha.toISOString().slice(0, 16);
+    } else {
+      this.fechaLlamadaEdicion = '';
+    }
+    this.mostrarModalEditar = true;
+  }
+
+  cerrarModalEditar(): void {
+    this.mostrarModalEditar = false;
+    this.coordinadorEditando = null;
+    this.fechaLlamadaEdicion = '';
+  }
+
+  guardarEdicion(): void {
+    if (!this.coordinadorEditando) return;
+
+    if (!this.coordinadorEditando.municipio.trim()) {
+      this.toastService.warning('El municipio es obligatorio');
+      return;
+    }
+    if (!this.coordinadorEditando.nombreCompleto.trim()) {
+      this.toastService.warning('El nombre completo es obligatorio');
+      return;
+    }
+    if (!this.coordinadorEditando.celular.trim()) {
+      this.toastService.warning('El celular es obligatorio');
+      return;
+    }
+
+    if (this.fechaLlamadaEdicion) {
+      this.coordinadorEditando.fechaLlamada = new Date(this.fechaLlamadaEdicion);
+    } else {
+      this.coordinadorEditando.fechaLlamada = undefined;
+    }
+
+    this.coordinadorService.actualizar(this.coordinadorEditando.id!, this.coordinadorEditando).subscribe({
+      next: () => {
+        this.toastService.success('Coordinador actualizado exitosamente');
+        this.cargarCoordinadores();
+        this.cargarEstadisticas();
+        this.cerrarModalEditar();
+      },
+      error: (error) => {
+        this.toastService.error('Error al actualizar coordinador');
+        console.error('Error:', error);
+      }
+    });
   }
 }

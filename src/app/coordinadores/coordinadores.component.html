@@ -68,12 +68,12 @@
   <!-- Filtros -->
   <div class="filters">
     <div class="filter-group">
-      <label>🏙️ Municipio:</label>
-      <input 
-        type="text" 
+      <label>🔍 Buscar:</label>
+      <input
+        type="text"
         [(ngModel)]="filtroMunicipio"
         (ngModelChange)="resetearPaginacion()"
-        placeholder="Buscar por municipio..."
+        placeholder="Buscar por municipio, nombre, celular u observaciones..."
         class="filter-input">
     </div>
     <div class="filter-group">
@@ -102,7 +102,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let coordinador of coordinadoresPaginados" 
+        <tr *ngFor="let coordinador of coordinadoresPaginados"
             [class.confirmado-row]="coordinador.confirmado">
           <td><strong>{{ coordinador.municipio }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
@@ -123,29 +123,35 @@
           <td class="observaciones-cell">{{ coordinador.observaciones || '-' }}</td>
           <td>
             <div class="action-buttons">
-              <button 
+              <button
+                class="btn btn-edit"
+                (click)="abrirModalEditar(coordinador)"
+                title="Editar coordinador">
+                ✏️
+              </button>
+              <button
                 *ngIf="!coordinador.confirmado"
-                class="btn btn-primary" 
+                class="btn btn-primary"
                 (click)="abrirModalConfirmacion(coordinador)"
                 title="Confirmar llamada">
                 ✓
               </button>
-              <button 
+              <button
                 *ngIf="coordinador.confirmado"
-                class="btn btn-warning" 
+                class="btn btn-warning"
                 (click)="desmarcarConfirmacion(coordinador)"
                 title="Desmarcar confirmación">
                 ↺
               </button>
-              <button 
-                class="btn btn-info" 
+              <button
+                class="btn btn-info"
                 (click)="verInvitados(coordinador)"
                 [disabled]="!coordinador.confirmado"
                 title="Ver/Agregar invitados">
                 👥
               </button>
-              <button 
-                class="btn btn-danger" 
+              <button
+                class="btn btn-danger"
                 (click)="eliminarCoordinador(coordinador)"
                 title="Eliminar">
                 <span class="icon-delete">🗑</span>
@@ -165,10 +171,10 @@
   <!-- Controles de paginación -->
   <div class="pagination-container" *ngIf="coordinadoresFiltrados.length > 0">
     <div class="pagination-info">
-      <span>Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} - 
-        {{ Math.min(paginaActual * itemsPorPagina, coordinadoresFiltrados.length) }} 
+      <span>Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} -
+        {{ Math.min(paginaActual * itemsPorPagina, coordinadoresFiltrados.length) }}
         de {{ coordinadoresFiltrados.length }} coordinadores</span>
-      
+
       <div class="items-per-page">
         <label>Mostrar:</label>
         <select (change)="cambiarItemsPorPagina($event)" [value]="itemsPorPagina" class="page-size-select">
@@ -183,39 +189,39 @@
     </div>
 
     <div class="pagination-controls" *ngIf="totalPaginas > 1">
-      <button 
-        class="page-btn" 
-        (click)="cambiarPagina(1)" 
+      <button
+        class="page-btn"
+        (click)="cambiarPagina(1)"
         [disabled]="paginaActual === 1"
         title="Primera página">
         ⟪
       </button>
-      <button 
-        class="page-btn" 
-        (click)="cambiarPagina(paginaActual - 1)" 
+      <button
+        class="page-btn"
+        (click)="cambiarPagina(paginaActual - 1)"
         [disabled]="paginaActual === 1"
         title="Página anterior">
         ‹
       </button>
 
-      <button 
+      <button
         *ngFor="let pagina of paginasArray"
-        class="page-btn" 
+        class="page-btn"
         [class.active]="pagina === paginaActual"
         (click)="cambiarPagina(pagina)">
         {{ pagina }}
       </button>
 
-      <button 
-        class="page-btn" 
-        (click)="cambiarPagina(paginaActual + 1)" 
+      <button
+        class="page-btn"
+        (click)="cambiarPagina(paginaActual + 1)"
         [disabled]="paginaActual === totalPaginas"
         title="Página siguiente">
         ›
       </button>
-      <button 
-        class="page-btn" 
-        (click)="cambiarPagina(totalPaginas)" 
+      <button
+        class="page-btn"
+        (click)="cambiarPagina(totalPaginas)"
         [disabled]="paginaActual === totalPaginas"
         title="Última página">
         ⟫
@@ -237,21 +243,21 @@
         <p><strong>Coordinador:</strong> {{ coordinadorSeleccionado.nombreCompleto }}</p>
         <p><strong>Celular:</strong> {{ coordinadorSeleccionado.celular }}</p>
       </div>
-      
+
       <div class="form-group">
         <label>¿Cuántos invitados confirmó?</label>
-        <input 
-          type="number" 
-          [(ngModel)]="numeroInvitados" 
+        <input
+          type="number"
+          [(ngModel)]="numeroInvitados"
           min="0"
           class="form-control"
           placeholder="Número de invitados">
       </div>
-      
+
       <div class="form-group">
         <label>Observaciones</label>
-        <textarea 
-          [(ngModel)]="observaciones" 
+        <textarea
+          [(ngModel)]="observaciones"
           rows="4"
           class="form-control"
           placeholder="Notas adicionales de la llamada..."></textarea>
@@ -273,31 +279,31 @@
     <div class="modal-body">
       <div class="form-group">
         <label>Municipio *</label>
-        <input 
-          type="text" 
-          [(ngModel)]="nuevoCoordinador.municipio" 
+        <input
+          type="text"
+          [(ngModel)]="nuevoCoordinador.municipio"
           class="form-control"
           placeholder="Nombre del municipio">
       </div>
-      
+
       <div class="form-group">
         <label>Nombre Completo *</label>
-        <input 
-          type="text" 
-          [(ngModel)]="nuevoCoordinador.nombreCompleto" 
+        <input
+          type="text"
+          [(ngModel)]="nuevoCoordinador.nombreCompleto"
           class="form-control"
           placeholder="Nombre completo del coordinador">
       </div>
-      
+
       <div class="form-group">
         <label>Celular *</label>
-        <input 
-          type="tel" 
-          [(ngModel)]="nuevoCoordinador.celular" 
+        <input
+          type="tel"
+          [(ngModel)]="nuevoCoordinador.celular"
           class="form-control"
           placeholder="Número de celular">
       </div>
-      
+
       <p class="form-note">* Campos obligatorios</p>
     </div>
     <div class="modal-footer">
@@ -362,7 +368,7 @@
         <p><strong>Invitados registrados:</strong> {{ coordinadorADesmarcar.numeroInvitados }}</p>
       </div>
       <p class="confirm-warning">
-        ⚠️ <strong>Importante:</strong> Esto marcará al coordinador como "Pendiente" nuevamente, 
+        ⚠️ <strong>Importante:</strong> Esto marcará al coordinador como "Pendiente" nuevamente,
         borrará la fecha de llamada y <strong>eliminará todos los invitados registrados</strong>.
       </p>
     </div>
@@ -371,6 +377,67 @@
       <button class="btn btn-warning" (click)="confirmarDesmarcar()">
         ↺ Sí, Desmarcar
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar coordinador -->
+<div class="modal-overlay" *ngIf="mostrarModalEditar" (click)="cerrarModalEditar()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>✏️ Editar Coordinador</h2>
+      <button class="close-btn" (click)="cerrarModalEditar()">✕</button>
+    </div>
+    <div class="modal-body" *ngIf="coordinadorEditando">
+      <div class="form-group">
+        <label>Municipio *</label>
+        <input
+          type="text"
+          [(ngModel)]="coordinadorEditando.municipio"
+          class="form-control"
+          placeholder="Nombre del municipio">
+      </div>
+
+      <div class="form-group">
+        <label>Nombre Completo *</label>
+        <input
+          type="text"
+          [(ngModel)]="coordinadorEditando.nombreCompleto"
+          class="form-control"
+          placeholder="Nombre completo del coordinador">
+      </div>
+
+      <div class="form-group">
+        <label>Celular *</label>
+        <input
+          type="tel"
+          [(ngModel)]="coordinadorEditando.celular"
+          class="form-control"
+          placeholder="Número de celular">
+      </div>
+
+      <div class="form-group">
+        <label>Fecha de Llamada</label>
+        <input
+          type="datetime-local"
+          [(ngModel)]="fechaLlamadaEdicion"
+          class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label>Observaciones</label>
+        <textarea
+          [(ngModel)]="coordinadorEditando.observaciones"
+          rows="4"
+          class="form-control"
+          placeholder="Observaciones adicionales..."></textarea>
+      </div>
+
+      <p class="form-note">* Campos obligatorios</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalEditar()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarEdicion()">💾 Guardar Cambios</button>
     </div>
   </div>
 </div>
