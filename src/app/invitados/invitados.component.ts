@@ -48,7 +48,7 @@ export class InvitadosComponent implements OnInit {
         this.invitados = data.invitados || [];
       },
       error: (error) => {
-        this.toastService.error('Error al cargar coordinador');
+        this.toastService.error('Error al cargar defensor');
         console.error('Error:', error);
       }
     });

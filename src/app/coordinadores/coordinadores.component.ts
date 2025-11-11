@@ -83,7 +83,7 @@ export class CoordinadoresComponent implements OnInit {
         this.coordinadores = data;
       },
       error: (error) => {
-        this.toastService.error('Error al cargar coordinadores');
+        this.toastService.error('Error al cargar defensores');
         console.error('Error:', error);
       }
     });
@@ -298,13 +298,13 @@ export class CoordinadoresComponent implements OnInit {
 
     this.coordinadorService.crear(this.nuevoCoordinador).subscribe({
       next: () => {
-        this.toastService.success('✅ Coordinador creado exitosamente');
+        this.toastService.success('✅ Defensor creado exitosamente');
         this.cargarCoordinadores();
         this.cargarEstadisticas();
         this.cerrarModalNuevo();
       },
       error: (error) => {
-        this.toastService.error('Error al crear coordinador');
+        this.toastService.error('Error al crear defensor');
         console.error('Error:', error);
       }
     });
@@ -348,13 +348,13 @@ export class CoordinadoresComponent implements OnInit {
 
     this.coordinadorService.eliminar(this.coordinadorAEliminar.id!).subscribe({
       next: () => {
-        this.toastService.success('🗑️ Coordinador eliminado exitosamente');
+        this.toastService.success('🗑️ Defensor eliminado exitosamente');
         this.cargarCoordinadores();
         this.cargarEstadisticas();
         this.cerrarModalEliminar();
       },
       error: (error) => {
-        this.toastService.error('Error al eliminar coordinador');
+        this.toastService.error('Error al eliminar defensor');
         console.error('Error:', error);
         this.cerrarModalEliminar();
       }
@@ -397,9 +397,9 @@ export class CoordinadoresComponent implements OnInit {
         const datosExcel: any[] = [];
 
         coordinadores.forEach(coordinador => {
-          // Agregar fila del coordinador
+          // Agregar fila del defensor
           datosExcel.push({
-            'Tipo': 'COORDINADOR',
+            'Tipo': 'DEFENSOR',
             'Municipio': coordinador.municipio,
             'Nombre Completo': coordinador.nombreCompleto,
             'Celular': coordinador.celular,
@@ -419,7 +419,7 @@ export class CoordinadoresComponent implements OnInit {
                 'Celular': invitado.telefono,
                 'Cédula': invitado.cedula,
                 'Estado': 'Registrado',
-                'Coordinador': coordinador.nombreCompleto,
+                'Defensor': coordinador.nombreCompleto,
                 'Observaciones': '-'
               });
             });
@@ -497,7 +497,7 @@ export class CoordinadoresComponent implements OnInit {
         let fillColor = "FFFFFF";
         let fontBold = false;
 
-        if (tipo === "COORDINADOR") {
+        if (tipo === "DEFENSOR") {
           if (estado === "Confirmado") {
             fillColor = "D4EDDA"; // Verde claro
           } else if (estado === "Pendiente") {
@@ -577,19 +577,22 @@ export class CoordinadoresComponent implements OnInit {
 
     // Crear el libro y agregar la hoja
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Coordinadores e Invitados');
+    XLSX.utils.book_append_sheet(wb, ws, 'Defensores e Invitados');
 
     // Generar archivo
     const fecha = new Date().toISOString().split('T')[0];
-    const nombreArchivo = `Coordinadores_Invitados_${fecha}.xlsx`;
+    const nombreArchivo = `Defensores_Invitados_${fecha}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
 
     this.toastService.success('✅ Archivo Excel descargado exitosamente');
   }
 
   logout(): void {
+    this.toastService.info('🚪 Se ha cerrado la sesión');
     this.authService.logout();
-    this.router.navigate(['/login']);
+    setTimeout(() => {
+      this.router.navigate(['/login']);
+    }, 500);
   }
 
   abrirModalEditar(coordinador: Coordinador): void {
@@ -653,13 +656,13 @@ export class CoordinadoresComponent implements OnInit {
 
     this.coordinadorService.actualizar(this.coordinadorEditando.id!, coordinadorParaEnviar as Coordinador).subscribe({
       next: () => {
-        this.toastService.success('Coordinador actualizado exitosamente');
+        this.toastService.success('Defensor actualizado exitosamente');
         this.cargarCoordinadores();
         this.cargarEstadisticas();
         this.cerrarModalEditar();
       },
       error: (error) => {
-        this.toastService.error('Error al actualizar coordinador');
+        this.toastService.error('Error al actualizar defensor');
         console.error('Error:', error);
       }
     });

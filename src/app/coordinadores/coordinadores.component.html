@@ -7,16 +7,11 @@
         <img src="assets/abelardo.png" alt="Abelardo de la Espriella" class="leader-photo">
         <div class="event-title-section">
           <h1>
-            <span class="title-line-1">Convención Nacional</span>
             <div class="defensores-logo-banner">
               <img src="assets/defensores.png" alt="Defensores de la Patria" class="defensores-image-banner">
             </div>
           </h1>
           <p class="event-subtitle">¡COLOMBIA ESCUCHARÁ LO DURO QUE RUGEN LOS TIGRES!</p>
-          <div class="event-details">
-            <span class="event-date">📅 Lunes 3 de Noviembre - 3:00 p.m.</span>
-            <span class="event-location">📍 Movistar Arena - Bogotá</span>
-          </div>
           <p class="event-leader">Abelardo de la Espriella - Nuestro Máximo Líder</p>
         </div>
         <img src="assets/tigre.png" alt="Tigre" class="tiger-image">
@@ -69,10 +64,10 @@
     </div>
   </div>
 
-  <!-- Botón para agregar nuevo coordinador -->
+  <!-- Botón para agregar nuevo defensor -->
   <div class="action-bar">
     <button class="btn-nuevo" (click)="abrirModalNuevo()">
-      ➕ Agregar Coordinador
+      ➕ Agregar Defensor
     </button>
     <button class="btn-exportar" (click)="exportarAExcel()">
       📊 Exportar a Excel
@@ -102,13 +97,13 @@
     </div>
   </div>
 
-  <!-- Tabla de coordinadores -->
+  <!-- Tabla de defensores -->
   <div class="table-container">
     <table>
       <thead>
         <tr>
           <th>Municipio</th>
-          <th>Coordinador</th>
+          <th>Defensor</th>
           <th>Celular</th>
           <th>Estado</th>
           <th>Invitados</th>
@@ -152,7 +147,7 @@
               <button
                 class="btn btn-edit"
                 (click)="abrirModalEditar(coordinador)"
-                title="Editar coordinador">
+                title="Editar defensor">
                 ✏️
               </button>
               <button
@@ -187,7 +182,7 @@
         </tr>
         <tr *ngIf="coordinadoresFiltrados.length === 0">
           <td colspan="8" class="empty-message">
-            No se encontraron coordinadores
+            No se encontraron defensores
           </td>
         </tr>
       </tbody>
@@ -199,7 +194,7 @@
     <div class="pagination-info">
       <span>Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} -
         {{ Math.min(paginaActual * itemsPorPagina, coordinadoresFiltrados.length) }}
-        de {{ coordinadoresFiltrados.length }} coordinadores</span>
+        de {{ coordinadoresFiltrados.length }} defensores</span>
 
       <div class="items-per-page">
         <label>Mostrar:</label>
@@ -266,7 +261,7 @@
     <div class="modal-body" *ngIf="coordinadorSeleccionado">
       <div class="modal-info">
         <p><strong>Municipio:</strong> {{ coordinadorSeleccionado.municipio }}</p>
-        <p><strong>Coordinador:</strong> {{ coordinadorSeleccionado.nombreCompleto }}</p>
+        <p><strong>Defensor:</strong> {{ coordinadorSeleccionado.nombreCompleto }}</p>
         <p><strong>Celular:</strong> {{ coordinadorSeleccionado.celular }}</p>
       </div>
 
@@ -298,11 +293,11 @@
   </div>
 </div>
 
-<!-- Modal para nuevo coordinador -->
+<!-- Modal para nuevo defensor -->
 <div class="modal-overlay" *ngIf="mostrarModalNuevo" (click)="cerrarModalNuevo()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>➕ Nuevo Coordinador</h2>
+      <h2>➕ Nuevo Defensor</h2>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -320,7 +315,7 @@
           type="text"
           [(ngModel)]="nuevoCoordinador.nombreCompleto"
           class="form-control"
-          placeholder="Nombre completo del coordinador">
+          placeholder="Nombre completo del defensor">
       </div>
 
       <div class="form-group">
@@ -341,7 +336,7 @@
   </div>
 </div>
 
-<!-- Modal de confirmación para eliminar coordinador -->
+<!-- Modal de confirmación para eliminar defensor -->
 <div class="modal-overlay" *ngIf="mostrarModalEliminar" (click)="cerrarModalEliminar()">
   <div class="modal-content modal-confirm" (click)="$event.stopPropagation()">
     <div class="modal-header modal-header-danger">
@@ -353,14 +348,14 @@
         <span class="icon-warning">🗑️</span>
       </div>
       <p class="confirm-message">
-        ¿Está seguro de que desea eliminar a este coordinador?
+        ¿Está seguro de que desea eliminar a este defensor?
       </p>
       <div class="confirm-details">
         <p><strong>Municipio:</strong> {{ coordinadorAEliminar.municipio }}</p>
-        <p><strong>Coordinador:</strong> {{ coordinadorAEliminar.nombreCompleto }}</p>
+        <p><strong>Defensor:</strong> {{ coordinadorAEliminar.nombreCompleto }}</p>
         <p><strong>Celular:</strong> {{ coordinadorAEliminar.celular }}</p>
         <p *ngIf="coordinadorAEliminar.confirmado" class="warning-text">
-          ⚠️ Este coordinador tiene {{ coordinadorAEliminar.numeroInvitados }} invitados confirmados
+          ⚠️ Este defensor tiene {{ coordinadorAEliminar.numeroInvitados }} invitados confirmados
         </p>
       </div>
       <p class="confirm-warning">
@@ -392,11 +387,11 @@
       </p>
       <div class="confirm-details">
         <p><strong>Municipio:</strong> {{ coordinadorADesmarcar.municipio }}</p>
-        <p><strong>Coordinador:</strong> {{ coordinadorADesmarcar.nombreCompleto }}</p>
+        <p><strong>Defensor:</strong> {{ coordinadorADesmarcar.nombreCompleto }}</p>
         <p><strong>Invitados registrados:</strong> {{ coordinadorADesmarcar.numeroInvitados }}</p>
       </div>
       <p class="confirm-warning">
-        ⚠️ <strong>Importante:</strong> Esto marcará al coordinador como "Pendiente" nuevamente,
+        ⚠️ <strong>Importante:</strong> Esto marcará al defensor como "Pendiente" nuevamente,
         borrará la fecha de llamada y <strong>eliminará todos los invitados registrados</strong>.
       </p>
     </div>
@@ -409,11 +404,11 @@
   </div>
 </div>
 
-<!-- Modal para editar coordinador -->
+<!-- Modal para editar defensor -->
 <div class="modal-overlay" *ngIf="mostrarModalEditar" (click)="cerrarModalEditar()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>✏️ Editar Coordinador</h2>
+      <h2>✏️ Editar Defensor</h2>
       <button class="close-btn" (click)="cerrarModalEditar()">✕</button>
     </div>
     <div class="modal-body" *ngIf="coordinadorEditando">
@@ -432,7 +427,7 @@
           type="text"
           [(ngModel)]="coordinadorEditando.nombreCompleto"
           class="form-control"
-          placeholder="Nombre completo del coordinador">
+          placeholder="Nombre completo del defensor">
       </div>
 
       <div class="form-group">
