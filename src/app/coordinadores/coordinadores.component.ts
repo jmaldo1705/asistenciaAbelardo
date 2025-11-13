@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { CoordinadorService } from '../services/coordinador.service';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
-import { Coordinador, Estadisticas } from '../models/coordinador.model';
+import { GoogleMapsService } from '../services/google-maps.service';
+import { Coordinador, Llamada, Estadisticas } from '../models/coordinador.model';
 import * as XLSX from 'xlsx-js-style';
 
 @Component({
@@ -17,70 +18,78 @@ import * as XLSX from 'xlsx-js-style';
 })
 export class CoordinadoresComponent implements OnInit {
   coordinadores: Coordinador[] = [];
-  estadisticas: Estadisticas = { total: 0, confirmados: 0, pendientes: 0 };
+  estadisticas: Estadisticas = { total: 0 };
   nombreUsuario: string = '';
   Math = Math; // Para usar Math en el template
 
   // Filtros
   filtroMunicipio: string = '';
-  filtroEstado: string = 'todos';
 
   // Paginación
   paginaActual: number = 1;
   itemsPorPagina: number = 10;
 
-  // Modal de confirmación
-  mostrarModal: boolean = false;
-  coordinadorSeleccionado: Coordinador | null = null;
-  numeroInvitados: number = 0;
-  observaciones: string = '';
-
   // Modal de nuevo coordinador
   mostrarModalNuevo: boolean = false;
   nuevoCoordinador: Coordinador = {
+    ciudad: '',
     municipio: '',
     nombreCompleto: '',
     celular: '',
+    email: '',
     confirmado: false,
     numeroInvitados: 0
   };
+  
+  // Autocomplete Google Maps - Nuevo defensor
+  ciudadSugerencias: any[] = [];
+  municipioSugerencias: any[] = [];
+  mostrandoSugerenciasCiudad: boolean = false;
+  mostrandoSugerenciasMunicipio: boolean = false;
+  
+  // Autocomplete Google Maps - Editar defensor
+  ciudadSugerenciasEditar: any[] = [];
+  municipioSugerenciasEditar: any[] = [];
+  mostrandoSugerenciasCiudadEditar: boolean = false;
+  mostrandoSugerenciasMunicipioEditar: boolean = false;
+
+  // Modal de historial de llamadas
+  mostrarModalHistorial: boolean = false;
+  coordinadorSeleccionadoHistorial: Coordinador | null = null;
+  historialLlamadas: Llamada[] = [];
+  nuevaLlamadaObservaciones: string = '';
 
   // Modal de confirmación de eliminación
   mostrarModalEliminar: boolean = false;
   coordinadorAEliminar: Coordinador | null = null;
 
-  // Modal de confirmación de desmarcar
-  mostrarModalDesmarcar: boolean = false;
-  coordinadorADesmarcar: Coordinador | null = null;
-
   // Modal de edición
   mostrarModalEditar: boolean = false;
   coordinadorEditando: Coordinador | null = null;
-  fechaLlamadaEdicion: string = '';
 
   constructor(
     private coordinadorService: CoordinadorService,
     private authService: AuthService,
     private toastService: ToastService,
+    private googleMapsService: GoogleMapsService,
     private router: Router
   ) { }
-
-  // Método helper para normalizar estados del backend
-  normalizarEstado(estado: string | undefined): string {
-    if (!estado) return '';
-    return estado.toLowerCase();
-  }
 
   ngOnInit(): void {
     this.nombreUsuario = this.authService.getNombreUsuario();
     this.cargarCoordinadores();
-    this.cargarEstadisticas();
   }
 
   cargarCoordinadores(): void {
     this.coordinadorService.obtenerTodos().subscribe({
       next: (data) => {
-        this.coordinadores = data;
+        // Calcular el número de llamadas para cada coordinador
+        this.coordinadores = data.map(coord => ({
+          ...coord,
+          numeroLlamadas: coord.llamadas ? coord.llamadas.length : 0
+        }));
+        // Actualizar estadísticas
+        this.estadisticas.total = this.coordinadores.length;
       },
       error: (error) => {
         this.toastService.error('Error al cargar defensores');
@@ -89,56 +98,29 @@ export class CoordinadoresComponent implements OnInit {
     });
   }
 
-  cargarEstadisticas(): void {
-    this.coordinadorService.obtenerEstadisticas().subscribe({
-      next: (data) => {
-        this.estadisticas = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar estadísticas:', error);
-      }
-    });
-  }
-
   get coordinadoresFiltrados(): Coordinador[] {
     const filtrados = this.coordinadores.filter(coord => {
-      const coincideMunicipio = !this.filtroMunicipio ||
-        coord.municipio.toLowerCase().includes(this.filtroMunicipio.toLowerCase()) ||
+      const coincide = !this.filtroMunicipio ||
+        (coord.ciudad && coord.ciudad.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
+        (coord.municipio && coord.municipio.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
         coord.nombreCompleto.toLowerCase().includes(this.filtroMunicipio.toLowerCase()) ||
         coord.celular.includes(this.filtroMunicipio) ||
+        (coord.email && coord.email.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
         (coord.observaciones && coord.observaciones.toLowerCase().includes(this.filtroMunicipio.toLowerCase()));
 
-      const estadoNormalizado = this.normalizarEstado(coord.estado);
-      
-      const coincideEstado = this.filtroEstado === 'todos' ||
-        (this.filtroEstado === 'confirmados' && (estadoNormalizado === 'confirmado' || (!coord.estado && coord.confirmado))) ||
-        (this.filtroEstado === 'pendientes' && (estadoNormalizado === 'pendiente' || (!coord.estado && !coord.confirmado))) ||
-        (this.filtroEstado === 'no_asiste' && estadoNormalizado === 'no_asiste') ||
-        (this.filtroEstado === 'no_contesta' && estadoNormalizado === 'no_contesta');
-
-      return coincideMunicipio && coincideEstado;
+      return coincide;
     });
 
-    // Ordenar por: 1) Estado (pendientes, no_contesta, no_asiste, confirmados), 2) Municipio alfabéticamente
+    // Ordenar por ciudad y municipio alfabéticamente
     return filtrados.sort((a, b) => {
-      // Definir orden de estados
-      const estadoOrden: { [key: string]: number } = {
-        'pendiente': 0,
-        'no_contesta': 1,
-        'no_asiste': 2,
-        'confirmado': 3
-      };
-
-      // Obtener estado actual o inferirlo del campo confirmado
-      const estadoA = this.normalizarEstado(a.estado) || (a.confirmado ? 'confirmado' : 'pendiente');
-      const estadoB = this.normalizarEstado(b.estado) || (b.confirmado ? 'confirmado' : 'pendiente');
-
-      // Primero ordenar por estado
-      if (estadoA !== estadoB) {
-        return estadoOrden[estadoA] - estadoOrden[estadoB];
-      }
-      // Si tienen el mismo estado, ordenar por municipio alfabéticamente
-      return a.municipio.localeCompare(b.municipio);
+      const ciudadA = a.ciudad || '';
+      const ciudadB = b.ciudad || '';
+      const municipioA = a.municipio || '';
+      const municipioB = b.municipio || '';
+      
+      const ciudadCompare = ciudadA.localeCompare(ciudadB);
+      if (ciudadCompare !== 0) return ciudadCompare;
+      return municipioA.localeCompare(municipioB);
     });
   }
 
@@ -172,119 +154,145 @@ export class CoordinadoresComponent implements OnInit {
     this.paginaActual = 1;
   }
 
-  abrirModalConfirmacion(coordinador: Coordinador): void {
-    this.coordinadorSeleccionado = coordinador;
-    this.numeroInvitados = coordinador.numeroInvitados || 0;
-    this.observaciones = coordinador.observaciones || '';
-    this.mostrarModal = true;
+
+  verHistorialLlamadas(coordinador: Coordinador): void {
+    this.coordinadorSeleccionadoHistorial = coordinador;
+    this.mostrarModalHistorial = true;
+    this.cargarHistorialLlamadas(coordinador.id!);
   }
 
-  cerrarModal(): void {
-    this.mostrarModal = false;
-    this.coordinadorSeleccionado = null;
-    this.numeroInvitados = 0;
-    this.observaciones = '';
-  }
-
-  confirmarLlamada(): void {
-    if (!this.coordinadorSeleccionado || this.numeroInvitados < 0) {
-      this.toastService.warning('Por favor, ingrese un número válido de invitados');
-      return;
-    }
-
-    const coordinadorId = this.coordinadorSeleccionado.id!;
-
-    this.coordinadorService.confirmarLlamada(
-      coordinadorId,
-      this.numeroInvitados,
-      this.observaciones
-    ).subscribe({
-      next: () => {
-        this.toastService.success('✅ Llamada confirmada exitosamente');
-        this.cerrarModal();
-        this.cargarCoordinadores();
-        this.cargarEstadisticas();
-        // Redirigir automáticamente a la pantalla de invitados
-        setTimeout(() => {
-          this.router.navigate(['/coordinadores', coordinadorId, 'invitados']);
-        }, 1000);
+  cargarHistorialLlamadas(coordinadorId: number): void {
+    this.coordinadorService.obtenerLlamadasPorCoordinador(coordinadorId).subscribe({
+      next: (data) => {
+        this.historialLlamadas = data;
       },
       error: (error) => {
-        this.toastService.error('Error al confirmar llamada');
+        this.toastService.error('Error al cargar historial de llamadas');
         console.error('Error:', error);
       }
     });
   }
 
-  marcarNoAsiste(): void {
-    if (!this.coordinadorSeleccionado) return;
+  cerrarModalHistorial(): void {
+    this.mostrarModalHistorial = false;
+    this.coordinadorSeleccionadoHistorial = null;
+    this.historialLlamadas = [];
+    this.nuevaLlamadaObservaciones = '';
+  }
 
-    const coordinadorId = this.coordinadorSeleccionado.id!;
+  registrarNuevaLlamada(): void {
+    if (!this.coordinadorSeleccionadoHistorial) return;
 
-    this.coordinadorService.actualizarEstado(
-      coordinadorId,
-      'no_asiste',
-      this.observaciones
+    this.coordinadorService.registrarLlamada(
+      this.coordinadorSeleccionadoHistorial.id!,
+      this.nuevaLlamadaObservaciones
     ).subscribe({
       next: () => {
-        this.toastService.warning('❌ Marcado como No Asiste');
-        this.cerrarModal();
+        this.toastService.success('📞 Llamada registrada exitosamente');
+        this.nuevaLlamadaObservaciones = '';
+        this.cargarHistorialLlamadas(this.coordinadorSeleccionadoHistorial!.id!);
         this.cargarCoordinadores();
-        this.cargarEstadisticas();
       },
       error: (error) => {
-        this.toastService.error('Error al actualizar estado');
+        this.toastService.error('Error al registrar llamada');
         console.error('Error:', error);
       }
     });
   }
 
-  marcarNoContesta(): void {
-    if (!this.coordinadorSeleccionado) return;
+  eliminarLlamada(llamadaId: number): void {
+    if (!confirm('¿Está seguro de que desea eliminar esta llamada?')) return;
 
-    const coordinadorId = this.coordinadorSeleccionado.id!;
-
-    this.coordinadorService.actualizarEstado(
-      coordinadorId,
-      'no_contesta',
-      this.observaciones
-    ).subscribe({
+    this.coordinadorService.eliminarLlamada(llamadaId).subscribe({
       next: () => {
-        this.toastService.info('📵 Marcado como No Contesta');
-        this.cerrarModal();
+        this.toastService.success('🗑️ Llamada eliminada exitosamente');
+        this.cargarHistorialLlamadas(this.coordinadorSeleccionadoHistorial!.id!);
         this.cargarCoordinadores();
-        this.cargarEstadisticas();
       },
       error: (error) => {
-        this.toastService.error('Error al actualizar estado');
+        this.toastService.error('Error al eliminar llamada');
         console.error('Error:', error);
       }
     });
-  }
-
-  verInvitados(coordinador: Coordinador): void {
-    this.router.navigate(['/coordinadores', coordinador.id, 'invitados']);
   }
 
   abrirModalNuevo(): void {
     this.nuevoCoordinador = {
+      ciudad: '',
       municipio: '',
       nombreCompleto: '',
       celular: '',
+      email: '',
       confirmado: false,
       numeroInvitados: 0
     };
+    this.ciudadSugerencias = [];
+    this.municipioSugerencias = [];
+    this.mostrandoSugerenciasCiudad = false;
+    this.mostrandoSugerenciasMunicipio = false;
     this.mostrarModalNuevo = true;
   }
 
   cerrarModalNuevo(): void {
     this.mostrarModalNuevo = false;
+    this.ciudadSugerencias = [];
+    this.municipioSugerencias = [];
+  }
+
+  async buscarCiudades(event: any): Promise<void> {
+    const input = event.target.value;
+    if (input.length < 2) {
+      this.ciudadSugerencias = [];
+      this.mostrandoSugerenciasCiudad = false;
+      return;
+    }
+
+    try {
+      const predictions = await this.googleMapsService.getCitySuggestions(input, 'CO');
+      this.ciudadSugerencias = predictions;
+      this.mostrandoSugerenciasCiudad = predictions.length > 0;
+    } catch (error) {
+      console.error('Error al buscar ciudades:', error);
+      this.ciudadSugerencias = [];
+      this.mostrandoSugerenciasCiudad = false;
+    }
+  }
+
+  seleccionarCiudad(prediction: any): void {
+    this.nuevoCoordinador.ciudad = this.googleMapsService.extractCityName(prediction);
+    this.ciudadSugerencias = [];
+    this.mostrandoSugerenciasCiudad = false;
+  }
+
+  async buscarMunicipios(event: any): Promise<void> {
+    const input = event.target.value;
+    if (input.length < 2) {
+      this.municipioSugerencias = [];
+      this.mostrandoSugerenciasMunicipio = false;
+      return;
+    }
+
+    try {
+      const predictions = await this.googleMapsService.getMunicipalitySuggestions(input, 'CO');
+      this.municipioSugerencias = predictions;
+      this.mostrandoSugerenciasMunicipio = predictions.length > 0;
+    } catch (error) {
+      console.error('Error al buscar municipios:', error);
+      this.municipioSugerencias = [];
+      this.mostrandoSugerenciasMunicipio = false;
+    }
+  }
+
+  seleccionarMunicipio(prediction: any): void {
+    this.nuevoCoordinador.municipio = this.googleMapsService.extractMunicipalityName(prediction);
+    this.municipioSugerencias = [];
+    this.mostrandoSugerenciasMunicipio = false;
   }
 
   guardarNuevoCoordinador(): void {
     // Validaciones
-    if (!this.nuevoCoordinador.municipio.trim()) {
-      this.toastService.warning('El municipio es obligatorio');
+    if (!this.nuevoCoordinador.ciudad.trim() && !this.nuevoCoordinador.municipio.trim()) {
+      this.toastService.warning('Debe ingresar al menos una ciudad o un municipio');
       return;
     }
     if (!this.nuevoCoordinador.nombreCompleto.trim()) {
@@ -300,7 +308,6 @@ export class CoordinadoresComponent implements OnInit {
       next: () => {
         this.toastService.success('✅ Defensor creado exitosamente');
         this.cargarCoordinadores();
-        this.cargarEstadisticas();
         this.cerrarModalNuevo();
       },
       error: (error) => {
@@ -310,33 +317,6 @@ export class CoordinadoresComponent implements OnInit {
     });
   }
 
-  desmarcarConfirmacion(coordinador: Coordinador): void {
-    this.coordinadorADesmarcar = coordinador;
-    this.mostrarModalDesmarcar = true;
-  }
-
-  confirmarDesmarcar(): void {
-    if (!this.coordinadorADesmarcar) return;
-
-    this.coordinadorService.desmarcarConfirmacion(this.coordinadorADesmarcar.id!).subscribe({
-      next: () => {
-        this.toastService.success('↺ Confirmación desmarcada exitosamente');
-        this.cargarCoordinadores();
-        this.cargarEstadisticas();
-        this.cerrarModalDesmarcar();
-      },
-      error: (error) => {
-        this.toastService.error('Error al desmarcar confirmación');
-        console.error('Error:', error);
-        this.cerrarModalDesmarcar();
-      }
-    });
-  }
-
-  cerrarModalDesmarcar(): void {
-    this.mostrarModalDesmarcar = false;
-    this.coordinadorADesmarcar = null;
-  }
 
   eliminarCoordinador(coordinador: Coordinador): void {
     this.coordinadorAEliminar = coordinador;
@@ -350,7 +330,6 @@ export class CoordinadoresComponent implements OnInit {
       next: () => {
         this.toastService.success('🗑️ Defensor eliminado exitosamente');
         this.cargarCoordinadores();
-        this.cargarEstadisticas();
         this.cerrarModalEliminar();
       },
       error: (error) => {
@@ -371,27 +350,10 @@ export class CoordinadoresComponent implements OnInit {
     return new Date(fecha).toLocaleString('es-ES');
   }
 
-  obtenerEstadoTexto(coordinador: Coordinador): string {
-    const estadoNormalizado = this.normalizarEstado(coordinador.estado);
-    
-    switch(estadoNormalizado) {
-      case 'confirmado':
-        return 'Confirmado';
-      case 'pendiente':
-        return 'Pendiente';
-      case 'no_asiste':
-        return 'No Asiste';
-      case 'no_contesta':
-        return 'No Contesta';
-      default:
-        return coordinador.confirmado ? 'Confirmado' : 'Pendiente';
-    }
-  }
-
   exportarAExcel(): void {
     this.toastService.info('⏳ Generando archivo Excel...');
 
-    // Obtener todos los coordinadores con sus invitados
+    // Obtener todos los coordinadores
     this.coordinadorService.obtenerTodos().subscribe({
       next: (coordinadores) => {
         const datosExcel: any[] = [];
@@ -399,31 +361,16 @@ export class CoordinadoresComponent implements OnInit {
         coordinadores.forEach(coordinador => {
           // Agregar fila del defensor
           datosExcel.push({
-            'Tipo': 'DEFENSOR',
-            'Municipio': coordinador.municipio,
+            'Ciudad': coordinador.ciudad || '-',
+            'Municipio': coordinador.municipio || '-',
             'Nombre Completo': coordinador.nombreCompleto,
             'Celular': coordinador.celular,
-            'Estado': this.obtenerEstadoTexto(coordinador),
+            'Email': coordinador.email || '-',
+            'Número de Llamadas': coordinador.llamadas ? coordinador.llamadas.length : 0,
             'Número de Invitados': coordinador.numeroInvitados,
             'Fecha Llamada': this.formatearFecha(coordinador.fechaLlamada),
             'Observaciones': coordinador.observaciones || '-'
           });
-
-          // Agregar filas de invitados si existen
-          if (coordinador.invitados && coordinador.invitados.length > 0) {
-            coordinador.invitados.forEach(invitado => {
-              datosExcel.push({
-                'Tipo': 'INVITADO',
-                'Municipio': coordinador.municipio,
-                'Nombre Completo': invitado.nombre,
-                'Celular': invitado.telefono,
-                'Cédula': invitado.cedula,
-                'Estado': 'Registrado',
-                'Defensor': coordinador.nombreCompleto,
-                'Observaciones': '-'
-              });
-            });
-          }
         });
 
         this.generarArchivoExcel(datosExcel);
@@ -441,13 +388,14 @@ export class CoordinadoresComponent implements OnInit {
 
     // Ajustar ancho de columnas
     const colWidths = [
-      { wch: 15 }, // Tipo
+      { wch: 20 }, // Ciudad
       { wch: 20 }, // Municipio
       { wch: 30 }, // Nombre Completo
       { wch: 15 }, // Celular
-      { wch: 12 }, // Estado o Cédula
-      { wch: 18 }, // Número de Invitados o Estado
-      { wch: 20 }, // Fecha Llamada o Coordinador
+      { wch: 25 }, // Email
+      { wch: 18 }, // Número de Llamadas
+      { wch: 18 }, // Número de Invitados
+      { wch: 20 }, // Fecha Llamada
       { wch: 30 }  // Observaciones
     ];
     ws['!cols'] = colWidths;
@@ -475,49 +423,16 @@ export class CoordinadoresComponent implements OnInit {
 
     // Aplicar estilos a las filas de datos
     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-      const tipoCell = ws[XLSX.utils.encode_cell({ r: R, c: 0 })];
-      const tipo = tipoCell?.v;
-
-      // Obtener el valor de estado (puede estar en diferentes columnas)
-      let estado = '';
-      const estadoCell4 = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
-      const estadoCell5 = ws[XLSX.utils.encode_cell({ r: R, c: 5 })];
-
-      if (estadoCell4?.v === 'Confirmado' || estadoCell4?.v === 'Pendiente' || estadoCell4?.v === 'No Asiste' || estadoCell4?.v === 'No Contesta') {
-        estado = estadoCell4.v;
-      } else if (estadoCell5?.v === 'Confirmado' || estadoCell5?.v === 'Pendiente' || estadoCell5?.v === 'Registrado' || estadoCell5?.v === 'No Asiste' || estadoCell5?.v === 'No Contesta') {
-        estado = estadoCell5.v;
-      }
-
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const address = XLSX.utils.encode_cell({ r: R, c: C });
         if (!ws[address]) continue;
 
-        // Color de fondo según el tipo
-        let fillColor = "FFFFFF";
-        let fontBold = false;
-
-        if (tipo === "DEFENSOR") {
-          if (estado === "Confirmado") {
-            fillColor = "D4EDDA"; // Verde claro
-          } else if (estado === "Pendiente") {
-            fillColor = "FFF3CD"; // Amarillo claro
-          } else if (estado === "No Asiste") {
-            fillColor = "F8D7DA"; // Rojo claro
-          } else if (estado === "No Contesta") {
-            fillColor = "FFE5CC"; // Naranja claro
-          }
-          fontBold = true;
-        } else if (tipo === "INVITADO") {
-          fillColor = "E7F3FF"; // Azul muy claro
-        }
-
         ws[address].s = {
-          fill: { fgColor: { rgb: fillColor } },
+          fill: { fgColor: { rgb: "FFFFFF" } },
           font: {
             sz: 11,
             name: "Calibri",
-            bold: fontBold
+            bold: false
           },
           alignment: {
             horizontal: C === 2 ? "left" : "center",
@@ -531,40 +446,6 @@ export class CoordinadoresComponent implements OnInit {
             right: { style: "thin", color: { rgb: "CCCCCC" } }
           }
         };
-
-        // Estilo especial para la columna de Estado
-        const cellValue = ws[address].v;
-        if (cellValue === "Confirmado") {
-          ws[address].s.font = {
-            ...ws[address].s.font,
-            color: { rgb: "155724" },
-            bold: true
-          };
-        } else if (cellValue === "Pendiente") {
-          ws[address].s.font = {
-            ...ws[address].s.font,
-            color: { rgb: "856404" },
-            bold: true
-          };
-        } else if (cellValue === "No Asiste") {
-          ws[address].s.font = {
-            ...ws[address].s.font,
-            color: { rgb: "721C24" },
-            bold: true
-          };
-        } else if (cellValue === "No Contesta") {
-          ws[address].s.font = {
-            ...ws[address].s.font,
-            color: { rgb: "D97706" },
-            bold: true
-          };
-        } else if (cellValue === "Registrado") {
-          ws[address].s.font = {
-            ...ws[address].s.font,
-            color: { rgb: "004085" },
-            bold: true
-          };
-        }
       }
     }
 
@@ -577,11 +458,11 @@ export class CoordinadoresComponent implements OnInit {
 
     // Crear el libro y agregar la hoja
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Defensores e Invitados');
+    XLSX.utils.book_append_sheet(wb, ws, 'Defensores');
 
     // Generar archivo
     const fecha = new Date().toISOString().split('T')[0];
-    const nombreArchivo = `Defensores_Invitados_${fecha}.xlsx`;
+    const nombreArchivo = `Defensores_${fecha}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
 
     this.toastService.success('✅ Archivo Excel descargado exitosamente');
@@ -595,35 +476,84 @@ export class CoordinadoresComponent implements OnInit {
     }, 500);
   }
 
+  irAMapaCalor(): void {
+    this.router.navigate(['/mapa-calor']);
+  }
+
   abrirModalEditar(coordinador: Coordinador): void {
     this.coordinadorEditando = { ...coordinador };
-    // Normalizar el estado del backend y si no tiene estado, inferirlo del campo confirmado
-    if (this.coordinadorEditando.estado) {
-      this.coordinadorEditando.estado = this.normalizarEstado(this.coordinadorEditando.estado) as any;
-    } else {
-      this.coordinadorEditando.estado = coordinador.confirmado ? 'confirmado' : 'pendiente';
-    }
-    if (coordinador.fechaLlamada) {
-      const fecha = new Date(coordinador.fechaLlamada);
-      // Formato compatible con <input type="datetime-local">
-      this.fechaLlamadaEdicion = fecha.toISOString().slice(0, 16);
-    } else {
-      this.fechaLlamadaEdicion = '';
-    }
+    this.ciudadSugerenciasEditar = [];
+    this.municipioSugerenciasEditar = [];
+    this.mostrandoSugerenciasCiudadEditar = false;
+    this.mostrandoSugerenciasMunicipioEditar = false;
     this.mostrarModalEditar = true;
   }
 
   cerrarModalEditar(): void {
     this.mostrarModalEditar = false;
     this.coordinadorEditando = null;
-    this.fechaLlamadaEdicion = '';
+    this.ciudadSugerenciasEditar = [];
+    this.municipioSugerenciasEditar = [];
+  }
+
+  async buscarCiudadesEditar(event: any): Promise<void> {
+    const input = event.target.value;
+    if (input.length < 2) {
+      this.ciudadSugerenciasEditar = [];
+      this.mostrandoSugerenciasCiudadEditar = false;
+      return;
+    }
+
+    try {
+      const predictions = await this.googleMapsService.getCitySuggestions(input, 'CO');
+      this.ciudadSugerenciasEditar = predictions;
+      this.mostrandoSugerenciasCiudadEditar = predictions.length > 0;
+    } catch (error) {
+      console.error('Error al buscar ciudades:', error);
+      this.ciudadSugerenciasEditar = [];
+      this.mostrandoSugerenciasCiudadEditar = false;
+    }
+  }
+
+  seleccionarCiudadEditar(prediction: any): void {
+    if (!this.coordinadorEditando) return;
+    this.coordinadorEditando.ciudad = this.googleMapsService.extractCityName(prediction);
+    this.ciudadSugerenciasEditar = [];
+    this.mostrandoSugerenciasCiudadEditar = false;
+  }
+
+  async buscarMunicipiosEditar(event: any): Promise<void> {
+    if (!this.coordinadorEditando) return;
+    const input = event.target.value;
+    if (input.length < 2) {
+      this.municipioSugerenciasEditar = [];
+      this.mostrandoSugerenciasMunicipioEditar = false;
+      return;
+    }
+
+    try {
+      const predictions = await this.googleMapsService.getMunicipalitySuggestions(input, 'CO');
+      this.municipioSugerenciasEditar = predictions;
+      this.mostrandoSugerenciasMunicipioEditar = predictions.length > 0;
+    } catch (error) {
+      console.error('Error al buscar municipios:', error);
+      this.municipioSugerenciasEditar = [];
+      this.mostrandoSugerenciasMunicipioEditar = false;
+    }
+  }
+
+  seleccionarMunicipioEditar(prediction: any): void {
+    if (!this.coordinadorEditando) return;
+    this.coordinadorEditando.municipio = this.googleMapsService.extractMunicipalityName(prediction);
+    this.municipioSugerenciasEditar = [];
+    this.mostrandoSugerenciasMunicipioEditar = false;
   }
 
   guardarEdicion(): void {
     if (!this.coordinadorEditando) return;
 
-    if (!this.coordinadorEditando.municipio.trim()) {
-      this.toastService.warning('El municipio es obligatorio');
+    if (!this.coordinadorEditando.ciudad.trim() && !this.coordinadorEditando.municipio.trim()) {
+      this.toastService.warning('Debe ingresar al menos una ciudad o un municipio');
       return;
     }
     if (!this.coordinadorEditando.nombreCompleto.trim()) {
@@ -635,30 +565,10 @@ export class CoordinadoresComponent implements OnInit {
       return;
     }
 
-    if (this.fechaLlamadaEdicion) {
-      this.coordinadorEditando.fechaLlamada = new Date(this.fechaLlamadaEdicion);
-    } else {
-      this.coordinadorEditando.fechaLlamada = undefined;
-    }
-
-    // Actualizar el campo confirmado basado en el estado
-    if (this.coordinadorEditando.estado === 'confirmado') {
-      this.coordinadorEditando.confirmado = true;
-    } else {
-      this.coordinadorEditando.confirmado = false;
-    }
-
-    // Convertir el estado a mayúsculas para el backend
-    const coordinadorParaEnviar = {
-      ...this.coordinadorEditando,
-      estado: this.coordinadorEditando.estado?.toUpperCase()
-    };
-
-    this.coordinadorService.actualizar(this.coordinadorEditando.id!, coordinadorParaEnviar as Coordinador).subscribe({
+    this.coordinadorService.actualizar(this.coordinadorEditando.id!, this.coordinadorEditando).subscribe({
       next: () => {
-        this.toastService.success('Defensor actualizado exitosamente');
+        this.toastService.success('✏️ Defensor actualizado exitosamente');
         this.cargarCoordinadores();
-        this.cargarEstadisticas();
         this.cerrarModalEditar();
       },
       error: (error) => {

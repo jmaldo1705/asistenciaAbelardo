@@ -30,35 +30,7 @@
         <div class="stat-icon">👥</div>
         <div class="stat-info">
           <div class="stat-number">{{ estadisticas.total }}</div>
-          <div class="stat-label">Total</div>
-        </div>
-      </div>
-      <div class="stat-card confirmed">
-        <div class="stat-icon">✅</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ estadisticas.confirmados }}</div>
-          <div class="stat-label">Confirmados</div>
-        </div>
-      </div>
-      <div class="stat-card pending">
-        <div class="stat-icon">⏳</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ estadisticas.pendientes }}</div>
-          <div class="stat-label">Pendientes</div>
-        </div>
-      </div>
-      <div class="stat-card no-asiste">
-        <div class="stat-icon">❌</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ estadisticas.noAsiste || 0 }}</div>
-          <div class="stat-label">No Asiste</div>
-        </div>
-      </div>
-      <div class="stat-card no-contesta">
-        <div class="stat-icon">📵</div>
-        <div class="stat-info">
-          <div class="stat-number">{{ estadisticas.noContesta || 0 }}</div>
-          <div class="stat-label">No Contesta</div>
+          <div class="stat-label">Total Defensores</div>
         </div>
       </div>
     </div>
@@ -72,6 +44,9 @@
     <button class="btn-exportar" (click)="exportarAExcel()">
       📊 Exportar a Excel
     </button>
+    <button class="btn-mapa" (click)="irAMapaCalor()">
+      🗺️ Ver Mapa de Calor
+    </button>
   </div>
 
   <!-- Filtros -->
@@ -82,18 +57,8 @@
         type="text"
         [(ngModel)]="filtroMunicipio"
         (ngModelChange)="resetearPaginacion()"
-        placeholder="Buscar por municipio, nombre, celular u observaciones..."
+        placeholder="Buscar por ciudad, municipio, nombre, celular, email u observaciones..."
         class="filter-input">
-    </div>
-    <div class="filter-group">
-      <label>📊 Estado:</label>
-      <select [(ngModel)]="filtroEstado" (ngModelChange)="resetearPaginacion()" class="filter-select">
-        <option value="todos">Todos</option>
-        <option value="confirmados">✅ Confirmados</option>
-        <option value="pendientes">⏳ Pendientes</option>
-        <option value="no_asiste">❌ No Asiste</option>
-        <option value="no_contesta">📵 No Contesta</option>
-      </select>
     </div>
   </div>
 
@@ -102,11 +67,12 @@
     <table>
       <thead>
         <tr>
+          <th>Ciudad</th>
           <th>Municipio</th>
           <th>Defensor</th>
           <th>Celular</th>
-          <th>Estado</th>
-          <th>Invitados</th>
+          <th>Email</th>
+          <th>Llamadas</th>
           <th>Fecha Llamada</th>
           <th>Observaciones</th>
           <th>Acciones</th>
@@ -115,30 +81,22 @@
       <tbody>
         <tr *ngFor="let coordinador of coordinadoresPaginados"
             [class.confirmado-row]="coordinador.confirmado">
-          <td><strong>{{ coordinador.municipio }}</strong></td>
+          <td><strong>{{ coordinador.ciudad || '-' }}</strong></td>
+          <td><strong>{{ coordinador.municipio || '-' }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
           <td>
             <a href="tel:{{ coordinador.celular }}" class="phone-link">
               {{ coordinador.celular }}
             </a>
           </td>
-          <td>
-            <span class="badge"
-                  [class.badge-success]="normalizarEstado(coordinador.estado) === 'confirmado' || (!coordinador.estado && coordinador.confirmado)"
-                  [class.badge-pending]="normalizarEstado(coordinador.estado) === 'pendiente' || (!coordinador.estado && !coordinador.confirmado)"
-                  [class.badge-danger]="normalizarEstado(coordinador.estado) === 'no_asiste'"
-                  [class.badge-warning]="normalizarEstado(coordinador.estado) === 'no_contesta'">
-              <ng-container [ngSwitch]="normalizarEstado(coordinador.estado) || (coordinador.confirmado ? 'confirmado' : 'pendiente')">
-                <span *ngSwitchCase="'confirmado'">✅ Confirmado</span>
-                <span *ngSwitchCase="'pendiente'">⏳ Pendiente</span>
-                <span *ngSwitchCase="'no_asiste'">❌ No Asiste</span>
-                <span *ngSwitchCase="'no_contesta'">📵 No Contesta</span>
-                <span *ngSwitchDefault>⏳ Pendiente</span>
-              </ng-container>
-            </span>
+          <td class="email-cell">
+            <a *ngIf="coordinador.email" [href]="'mailto:' + coordinador.email" class="email-link">
+              {{ coordinador.email }}
+            </a>
+            <span *ngIf="!coordinador.email">-</span>
           </td>
-          <td class="invitados-cell">
-            <span class="invitados-number">{{ coordinador.numeroInvitados }}</span>
+          <td class="llamadas-cell">
+            <span class="llamadas-number">{{ coordinador.numeroLlamadas || 0 }}</span>
           </td>
           <td class="fecha-cell">{{ formatearFecha(coordinador.fechaLlamada) }}</td>
           <td class="observaciones-cell">{{ coordinador.observaciones || '-' }}</td>
@@ -151,25 +109,10 @@
                 ✏️
               </button>
               <button
-                *ngIf="!coordinador.confirmado"
-                class="btn btn-primary"
-                (click)="abrirModalConfirmacion(coordinador)"
-                title="Confirmar llamada">
-                ✓
-              </button>
-              <button
-                *ngIf="coordinador.confirmado"
-                class="btn btn-warning"
-                (click)="desmarcarConfirmacion(coordinador)"
-                title="Desmarcar confirmación">
-                ↺
-              </button>
-              <button
-                class="btn btn-info"
-                (click)="verInvitados(coordinador)"
-                [disabled]="!coordinador.confirmado"
-                title="Ver/Agregar invitados">
-                👥
+                class="btn btn-view"
+                (click)="verHistorialLlamadas(coordinador)"
+                title="Ver historial de llamadas">
+                👁️
               </button>
               <button
                 class="btn btn-danger"
@@ -181,7 +124,7 @@
           </td>
         </tr>
         <tr *ngIf="coordinadoresFiltrados.length === 0">
-          <td colspan="8" class="empty-message">
+          <td colspan="9" class="empty-message">
             No se encontraron defensores
           </td>
         </tr>
@@ -251,48 +194,6 @@
   </div>
 </div>
 
-<!-- Modal de confirmación de llamada -->
-<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>📞 Confirmar Llamada</h2>
-      <button class="close-btn" (click)="cerrarModal()">✕</button>
-    </div>
-    <div class="modal-body" *ngIf="coordinadorSeleccionado">
-      <div class="modal-info">
-        <p><strong>Municipio:</strong> {{ coordinadorSeleccionado.municipio }}</p>
-        <p><strong>Defensor:</strong> {{ coordinadorSeleccionado.nombreCompleto }}</p>
-        <p><strong>Celular:</strong> {{ coordinadorSeleccionado.celular }}</p>
-      </div>
-
-      <div class="form-group">
-        <label>¿Cuántos invitados confirmó?</label>
-        <input
-          type="number"
-          [(ngModel)]="numeroInvitados"
-          min="0"
-          class="form-control"
-          placeholder="Número de invitados">
-      </div>
-
-      <div class="form-group">
-        <label>Observaciones</label>
-        <textarea
-          [(ngModel)]="observaciones"
-          rows="4"
-          class="form-control"
-          placeholder="Notas adicionales de la llamada..."></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
-      <button class="btn btn-danger" (click)="marcarNoAsiste()">❌ No Asiste</button>
-      <button class="btn btn-warning" (click)="marcarNoContesta()">📵 No Contesta</button>
-      <button class="btn btn-success" (click)="confirmarLlamada()">✅ Confirmar Llamada</button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal para nuevo defensor -->
 <div class="modal-overlay" *ngIf="mostrarModalNuevo" (click)="cerrarModalNuevo()">
   <div class="modal-content" (click)="$event.stopPropagation()">
@@ -300,13 +201,44 @@
       <h2>➕ Nuevo Defensor</h2>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label>Municipio *</label>
+      <div class="form-group autocomplete-container">
+        <label>Ciudad 🌍</label>
+        <input
+          type="text"
+          [(ngModel)]="nuevoCoordinador.ciudad"
+          (input)="buscarCiudades($event)"
+          class="form-control"
+          placeholder="Escribe para buscar ciudad (opcional)..."
+          autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasCiudad">
+          <div 
+            class="suggestion-item" 
+            *ngFor="let sugerencia of ciudadSugerencias"
+            (click)="seleccionarCiudad(sugerencia)">
+            <span class="suggestion-icon">📍</span>
+            <span class="suggestion-text">{{ sugerencia.description }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group autocomplete-container">
+        <label>Municipio 🏘️</label>
         <input
           type="text"
           [(ngModel)]="nuevoCoordinador.municipio"
+          (input)="buscarMunicipios($event)"
           class="form-control"
-          placeholder="Nombre del municipio">
+          placeholder="Escribe para buscar municipio (opcional)..."
+          autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipio">
+          <div 
+            class="suggestion-item" 
+            *ngFor="let sugerencia of municipioSugerencias"
+            (click)="seleccionarMunicipio(sugerencia)">
+            <span class="suggestion-icon">📍</span>
+            <span class="suggestion-text">{{ sugerencia.description }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="form-group">
@@ -327,7 +259,18 @@
           placeholder="Número de celular">
       </div>
 
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input
+          type="email"
+          [(ngModel)]="nuevoCoordinador.email"
+          class="form-control"
+          placeholder="correo@ejemplo.com (opcional)">
+      </div>
+
       <p class="form-note">* Campos obligatorios</p>
+      <p class="form-note">🌍 Los campos de ciudad y municipio usan Google Maps para autocompletado</p>
+      <p class="form-note">💡 Puedes dejar ciudad o municipio en blanco, pero al menos uno debe estar completo</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="cerrarModalNuevo()">Cancelar</button>
@@ -371,39 +314,6 @@
   </div>
 </div>
 
-<!-- Modal de confirmación para desmarcar -->
-<div class="modal-overlay" *ngIf="mostrarModalDesmarcar" (click)="cerrarModalDesmarcar()">
-  <div class="modal-content modal-confirm" (click)="$event.stopPropagation()">
-    <div class="modal-header modal-header-warning">
-      <h2>⚠️ Desmarcar Confirmación</h2>
-      <button class="close-btn" (click)="cerrarModalDesmarcar()">✕</button>
-    </div>
-    <div class="modal-body" *ngIf="coordinadorADesmarcar">
-      <div class="confirm-icon">
-        <span class="icon-warning">↺</span>
-      </div>
-      <p class="confirm-message">
-        ¿Está seguro de que desea desmarcar la confirmación de llamada?
-      </p>
-      <div class="confirm-details">
-        <p><strong>Municipio:</strong> {{ coordinadorADesmarcar.municipio }}</p>
-        <p><strong>Defensor:</strong> {{ coordinadorADesmarcar.nombreCompleto }}</p>
-        <p><strong>Invitados registrados:</strong> {{ coordinadorADesmarcar.numeroInvitados }}</p>
-      </div>
-      <p class="confirm-warning">
-        ⚠️ <strong>Importante:</strong> Esto marcará al defensor como "Pendiente" nuevamente,
-        borrará la fecha de llamada y <strong>eliminará todos los invitados registrados</strong>.
-      </p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="cerrarModalDesmarcar()">Cancelar</button>
-      <button class="btn btn-warning" (click)="confirmarDesmarcar()">
-        ↺ Sí, Desmarcar
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal para editar defensor -->
 <div class="modal-overlay" *ngIf="mostrarModalEditar" (click)="cerrarModalEditar()">
   <div class="modal-content" (click)="$event.stopPropagation()">
@@ -412,13 +322,44 @@
       <button class="close-btn" (click)="cerrarModalEditar()">✕</button>
     </div>
     <div class="modal-body" *ngIf="coordinadorEditando">
-      <div class="form-group">
-        <label>Municipio *</label>
+      <div class="form-group autocomplete-container">
+        <label>Ciudad 🌍</label>
+        <input
+          type="text"
+          [(ngModel)]="coordinadorEditando.ciudad"
+          (input)="buscarCiudadesEditar($event)"
+          class="form-control"
+          placeholder="Escribe para buscar ciudad (opcional)..."
+          autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasCiudadEditar">
+          <div 
+            class="suggestion-item" 
+            *ngFor="let sugerencia of ciudadSugerenciasEditar"
+            (click)="seleccionarCiudadEditar(sugerencia)">
+            <span class="suggestion-icon">📍</span>
+            <span class="suggestion-text">{{ sugerencia.description }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group autocomplete-container">
+        <label>Municipio 🏘️</label>
         <input
           type="text"
           [(ngModel)]="coordinadorEditando.municipio"
+          (input)="buscarMunicipiosEditar($event)"
           class="form-control"
-          placeholder="Nombre del municipio">
+          placeholder="Escribe para buscar municipio (opcional)..."
+          autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipioEditar">
+          <div 
+            class="suggestion-item" 
+            *ngFor="let sugerencia of municipioSugerenciasEditar"
+            (click)="seleccionarMunicipioEditar(sugerencia)">
+            <span class="suggestion-icon">📍</span>
+            <span class="suggestion-text">{{ sugerencia.description }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="form-group">
@@ -440,37 +381,80 @@
       </div>
 
       <div class="form-group">
-        <label>Fecha de Llamada</label>
+        <label>Correo Electrónico</label>
         <input
-          type="datetime-local"
-          [(ngModel)]="fechaLlamadaEdicion"
-          class="form-control">
-      </div>
-
-      <div class="form-group">
-        <label>Observaciones</label>
-        <textarea
-          [(ngModel)]="coordinadorEditando.observaciones"
-          rows="4"
+          type="email"
+          [(ngModel)]="coordinadorEditando.email"
           class="form-control"
-          placeholder="Observaciones adicionales..."></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Estado</label>
-        <select [(ngModel)]="coordinadorEditando.estado" class="form-control">
-          <option value="pendiente">⏳ Pendiente</option>
-          <option value="confirmado">✅ Confirmado</option>
-          <option value="no_asiste">❌ No Asiste</option>
-          <option value="no_contesta">📵 No Contesta</option>
-        </select>
+          placeholder="correo@ejemplo.com (opcional)">
       </div>
 
       <p class="form-note">* Campos obligatorios</p>
+      <p class="form-note">💡 Las llamadas y observaciones se gestionan desde el historial de llamadas (botón 👁️)</p>
+      <p class="form-note">🌍 Los campos de ciudad y municipio usan Google Maps para autocompletado</p>
+      <p class="form-note">💡 Puedes dejar ciudad o municipio en blanco, pero al menos uno debe estar completo</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="cerrarModalEditar()">Cancelar</button>
       <button class="btn btn-primary" (click)="guardarEdicion()">💾 Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para ver historial de llamadas -->
+<div class="modal-overlay" *ngIf="mostrarModalHistorial" (click)="cerrarModalHistorial()">
+  <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📞 Historial de Llamadas</h2>
+      <button class="close-btn" (click)="cerrarModalHistorial()">✕</button>
+    </div>
+    <div class="modal-body" *ngIf="coordinadorSeleccionadoHistorial">
+      <div class="modal-info">
+        <p><strong>Ciudad:</strong> {{ coordinadorSeleccionadoHistorial.ciudad }}</p>
+        <p><strong>Municipio:</strong> {{ coordinadorSeleccionadoHistorial.municipio }}</p>
+        <p><strong>Defensor:</strong> {{ coordinadorSeleccionadoHistorial.nombreCompleto }}</p>
+        <p><strong>Celular:</strong> {{ coordinadorSeleccionadoHistorial.celular }}</p>
+        <p><strong>Total de llamadas:</strong> {{ historialLlamadas.length }}</p>
+      </div>
+
+      <div class="form-group">
+        <label>Registrar Nueva Llamada</label>
+        <textarea
+          [(ngModel)]="nuevaLlamadaObservaciones"
+          rows="3"
+          class="form-control"
+          placeholder="Observaciones de la llamada..."></textarea>
+        <button class="btn btn-primary mt-2" (click)="registrarNuevaLlamada()">
+          ➕ Registrar Llamada
+        </button>
+      </div>
+
+      <hr>
+
+      <h3>Historial</h3>
+      <div *ngIf="historialLlamadas.length === 0" class="empty-message">
+        No hay llamadas registradas para este defensor.
+      </div>
+
+      <div class="llamadas-list" *ngIf="historialLlamadas.length > 0">
+        <div class="llamada-item" *ngFor="let llamada of historialLlamadas">
+          <div class="llamada-header">
+            <span class="llamada-fecha">📅 {{ formatearFecha(llamada.fecha) }}</span>
+            <button
+              class="btn-delete-llamada"
+              (click)="eliminarLlamada(llamada.id!)"
+              title="Eliminar llamada">
+              🗑️
+            </button>
+          </div>
+          <div class="llamada-observaciones">
+            {{ llamada.observaciones || 'Sin observaciones' }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalHistorial()">Cerrar</button>
     </div>
   </div>
 </div>

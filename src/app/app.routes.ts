@@ -17,8 +17,8 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'coordinadores/:id/invitados',
-    loadComponent: () => import('./invitados/invitados.component').then(m => m.InvitadosComponent),
+    path: 'mapa-calor',
+    loadComponent: () => import('./mapa-calor/mapa-calor.component').then(m => m.MapaCalorComponent),
     canActivate: [authGuard]
   }
 ];

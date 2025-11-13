@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Coordinador, Invitado, Estadisticas } from '../models/coordinador.model';
+import { Coordinador, Llamada, Estadisticas } from '../models/coordinador.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -36,37 +36,23 @@ export class CoordinadorService {
     return this.http.put<Coordinador>(`${this.apiUrl}/${id}`, coordinador);
   }
 
-  confirmarLlamada(id: number, numeroInvitados: number, observaciones: string): Observable<Coordinador> {
-    return this.http.put<Coordinador>(`${this.apiUrl}/${id}/confirmar`, {
-      numeroInvitados,
-      observaciones
-    });
-  }
-
-  desmarcarConfirmacion(id: number): Observable<Coordinador> {
-    return this.http.put<Coordinador>(`${this.apiUrl}/${id}/desmarcar`, {});
-  }
-
-  actualizarEstado(id: number, estado: string, observaciones?: string): Observable<Coordinador> {
-    return this.http.put<Coordinador>(`${this.apiUrl}/${id}/estado`, {
-      estado,
-      observaciones
-    });
-  }
-
-  agregarInvitado(coordinadorId: number, invitado: Invitado): Observable<Coordinador> {
-    return this.http.post<Coordinador>(`${this.apiUrl}/${coordinadorId}/invitados`, invitado);
-  }
-
-  eliminarInvitado(coordinadorId: number, invitadoId: number): Observable<Coordinador> {
-    return this.http.delete<Coordinador>(`${this.apiUrl}/${coordinadorId}/invitados/${invitadoId}`);
-  }
-
   eliminar(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  obtenerEstadisticas(): Observable<Estadisticas> {
-    return this.http.get<Estadisticas>(`${this.apiUrl}/estadisticas`);
+
+  // Métodos para gestionar llamadas
+  registrarLlamada(coordinadorId: number, observaciones: string): Observable<Llamada> {
+    return this.http.post<Llamada>(`${environment.apiUrl}/llamadas/coordinador/${coordinadorId}`, {
+      observaciones
+    });
+  }
+
+  obtenerLlamadasPorCoordinador(coordinadorId: number): Observable<Llamada[]> {
+    return this.http.get<Llamada[]>(`${environment.apiUrl}/llamadas/coordinador/${coordinadorId}`);
+  }
+
+  eliminarLlamada(llamadaId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/llamadas/${llamadaId}`);
   }
 }

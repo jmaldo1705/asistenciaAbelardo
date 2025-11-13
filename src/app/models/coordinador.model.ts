@@ -1,28 +1,25 @@
 export interface Coordinador {
   id?: number;
+  ciudad: string;
   municipio: string;
   nombreCompleto: string;
   celular: string;
+  email?: string;
   fechaLlamada?: Date;
   confirmado: boolean;
   numeroInvitados: number;
   observaciones?: string;
-  invitados?: Invitado[];
-  estado?: 'pendiente' | 'confirmado' | 'no_asiste' | 'no_contesta';
+  llamadas?: Llamada[];
+  numeroLlamadas?: number;
 }
 
-export interface Invitado {
+export interface Llamada {
   id?: number;
-  nombre: string;
-  cedula: string;
-  telefono: string;
+  fecha: Date;
+  observaciones?: string;
   coordinadorId?: number;
 }
 
 export interface Estadisticas {
   total: number;
-  confirmados: number;
-  pendientes: number;
-  noAsiste?: number;
-  noContesta?: number;
 }

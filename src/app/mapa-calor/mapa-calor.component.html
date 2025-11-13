@@ -1,0 +1,63 @@
+<div class="mapa-container">
+  <!-- Header -->
+  <div class="mapa-header">
+    <div class="header-content">
+      <h1>🗺️ Mapa de Calor de Defensores</h1>
+      <button class="btn-volver" (click)="volver()">
+        ← Volver a Listado
+      </button>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="estadisticas-mapa">
+      <div class="stat-item">
+        <span class="stat-label">Total Defensores:</span>
+        <span class="stat-value">{{ totalDefensores }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Ubicaciones:</span>
+        <span class="stat-value">{{ ubicacionesUnicas.size }}</span>
+      </div>
+    </div>
+
+    <!-- Controles del mapa -->
+    <div class="controles-mapa">
+      <button class="btn-control" (click)="toggleHeatmap()" title="Mostrar/Ocultar círculos de calor">
+        {{ mostrarCirculos ? '👁️ Ocultar' : '🔥 Mostrar' }} Círculos
+      </button>
+    </div>
+  </div>
+
+  <!-- Indicador de carga -->
+  <div *ngIf="cargando" class="cargando-mapa">
+    <div class="spinner"></div>
+    <p>Geocodificando ubicaciones y generando mapa de calor...</p>
+    <p class="cargando-hint">Esto puede tomar unos momentos</p>
+  </div>
+
+  <!-- Mapa -->
+  <div id="mapa-calor" [class.cargando]="cargando"></div>
+
+  <!-- Leyenda -->
+  <div class="leyenda" *ngIf="!cargando">
+    <h3>📊 Leyenda</h3>
+    <div class="leyenda-content">
+      <div class="leyenda-item">
+        <div class="leyenda-color" style="background: #3b82f6; border-radius: 50%;"></div>
+        <span>Pocos defensores (Azul)</span>
+      </div>
+      <div class="leyenda-item">
+        <div class="leyenda-color" style="background: #f59e0b; border-radius: 50%;"></div>
+        <span>Defensores moderados (Naranja)</span>
+      </div>
+      <div class="leyenda-item">
+        <div class="leyenda-color" style="background: #ef4444; border-radius: 50%;"></div>
+        <span>Muchos defensores (Rojo)</span>
+      </div>
+    </div>
+    <p class="leyenda-note">
+      💡 Haz clic en los marcadores para ver detalles. Los círculos muestran la densidad de defensores.
+    </p>
+  </div>
+</div>
+
