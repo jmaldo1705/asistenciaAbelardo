@@ -45,6 +45,14 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Verificación de permisos - funcionalidad deshabilitada
+    this.toastService.error('❌ No tiene permisos para ver el mapa de calor');
+    setTimeout(() => {
+      this.router.navigate(['/coordinadores']);
+    }, 2000);
+    return;
+    
+    // Lógica original mantenida (no se ejecuta)
     // Esperar a que Google Maps esté cargado
     this.waitForGoogleMaps().then(() => {
       this.cargarCoordinadores();

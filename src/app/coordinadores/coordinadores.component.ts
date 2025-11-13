@@ -349,6 +349,11 @@ export class CoordinadoresComponent implements OnInit {
 
 
   eliminarCoordinador(coordinador: Coordinador): void {
+    // Verificación de permisos - funcionalidad deshabilitada
+    this.toastService.error('❌ No tiene permisos para eliminar defensores');
+    return;
+    
+    // Lógica original mantenida (no se ejecuta)
     this.coordinadorAEliminar = coordinador;
     this.mostrarModalEliminar = true;
   }
@@ -381,6 +386,11 @@ export class CoordinadoresComponent implements OnInit {
   }
 
   exportarAExcel(): void {
+    // Verificación de permisos - funcionalidad deshabilitada
+    this.toastService.error('❌ No tiene permisos para exportar a Excel');
+    return;
+    
+    // Lógica original mantenida (no se ejecuta)
     this.toastService.info('⏳ Generando archivo Excel...');
 
     // Obtener todos los coordinadores
@@ -507,6 +517,11 @@ export class CoordinadoresComponent implements OnInit {
   }
 
   irAMapaCalor(): void {
+    // Verificación de permisos - funcionalidad deshabilitada
+    this.toastService.error('❌ No tiene permisos para ver el mapa de calor');
+    return;
+    
+    // Lógica original mantenida (no se ejecuta)
     this.router.navigate(['/mapa-calor']);
   }
 
