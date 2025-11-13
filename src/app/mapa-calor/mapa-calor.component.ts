@@ -99,8 +99,11 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
   }
 
   procesarUbicaciones(): void {
-    // Agrupar por ciudad o municipio (lo que esté disponible)
-    const ubicaciones = new Map<string, number>();
+    // Agrupar coordinadores por ubicación
+    const ubicacionesAgrupadas = new Map<string, { 
+      coordinadoresConCoords: Coordinador[]; 
+      coordinadoresSinCoords: Coordinador[];
+    }>();
     
     this.coordinadores.forEach(coord => {
       // Usar ciudad si está disponible, si no usar municipio, si no usar "Sin ubicación"
@@ -113,13 +116,23 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
         clave = 'Sin ubicación';
       }
       
-      const count = ubicaciones.get(clave) || 0;
-      ubicaciones.set(clave, count + 1);
+      const existing = ubicacionesAgrupadas.get(clave) || { 
+        coordinadoresConCoords: [], 
+        coordinadoresSinCoords: [] 
+      };
+      
+      if (coord.latitud && coord.longitud) {
+        existing.coordinadoresConCoords.push(coord);
+      } else {
+        existing.coordinadoresSinCoords.push(coord);
+      }
+      
+      ubicacionesAgrupadas.set(clave, existing);
     });
 
-    // Geocodificar ubicaciones únicas
+    // Procesar ubicaciones: usar coordenadas si existen, si no geocodificar
     this.geocoder = new window.google.maps.Geocoder();
-    const ubicacionesArray = Array.from(ubicaciones.entries());
+    const ubicacionesArray = Array.from(ubicacionesAgrupadas.entries());
     let procesadas = 0;
 
     if (ubicacionesArray.length === 0) {
@@ -127,13 +140,39 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       return;
     }
 
-    ubicacionesArray.forEach(([ubicacion, count]) => {
-      this.geocodificarUbicacion(ubicacion, count, () => {
+    ubicacionesArray.forEach(([ubicacion, data]) => {
+      const totalCount = data.coordinadoresConCoords.length + data.coordinadoresSinCoords.length;
+      
+      // Si hay coordinadores con coordenadas, usar el promedio de sus coordenadas
+      if (data.coordinadoresConCoords.length > 0) {
+        let sumLat = 0;
+        let sumLng = 0;
+        data.coordinadoresConCoords.forEach(coord => {
+          sumLat += coord.latitud!;
+          sumLng += coord.longitud!;
+        });
+        const avgLat = sumLat / data.coordinadoresConCoords.length;
+        const avgLng = sumLng / data.coordinadoresConCoords.length;
+        
+        this.ubicacionesUnicas.set(ubicacion, {
+          count: totalCount,
+          lat: avgLat,
+          lng: avgLng
+        });
+        
         procesadas++;
         if (procesadas === ubicacionesArray.length) {
           this.inicializarMapa();
         }
-      });
+      } else {
+        // No hay coordenadas, geocodificar por nombre
+        this.geocodificarUbicacion(ubicacion, totalCount, () => {
+          procesadas++;
+          if (procesadas === ubicacionesArray.length) {
+            this.inicializarMapa();
+          }
+        });
+      }
     });
   }
 

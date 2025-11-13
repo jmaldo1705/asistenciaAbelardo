@@ -1413,29 +1413,3 @@ tbody tr:hover {
 .autocomplete-suggestions::-webkit-scrollbar-thumb:hover {
   background: #2563eb;
 }
-
-/* Estilos para mostrar coordenadas */
-.coordenadas-display {
-  display: flex;
-  gap: 15px;
-  padding: 10px 15px;
-  background-color: #f0f9ff;
-  border: 2px solid #0ea5e9;
-  border-radius: 8px;
-  margin-top: 8px;
-}
-
-.coordenada-item {
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  color: #0369a1;
-  font-weight: 600;
-}
-
-.form-text.text-muted {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-style: italic;
-}

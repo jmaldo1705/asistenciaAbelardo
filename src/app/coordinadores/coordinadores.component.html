@@ -241,15 +241,6 @@
         </div>
       </div>
 
-      <div class="form-group" *ngIf="nuevoCoordinador.latitud && nuevoCoordinador.longitud">
-        <label>📍 Coordenadas</label>
-        <div class="coordenadas-display">
-          <span class="coordenada-item">Lat: {{ nuevoCoordinador.latitud | number:'1.7-7' }}</span>
-          <span class="coordenada-item">Lng: {{ nuevoCoordinador.longitud | number:'1.7-7' }}</span>
-        </div>
-        <small class="form-text text-muted">Coordenadas registradas para evitar ambigüedades geográficas</small>
-      </div>
-
       <div class="form-group">
         <label>Nombre Completo *</label>
         <input
@@ -369,15 +360,6 @@
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
         </div>
-      </div>
-
-      <div class="form-group" *ngIf="coordinadorEditando.latitud && coordinadorEditando.longitud">
-        <label>📍 Coordenadas</label>
-        <div class="coordenadas-display">
-          <span class="coordenada-item">Lat: {{ coordinadorEditando.latitud | number:'1.7-7' }}</span>
-          <span class="coordenada-item">Lng: {{ coordinadorEditando.longitud | number:'1.7-7' }}</span>
-        </div>
-        <small class="form-text text-muted">Coordenadas registradas para evitar ambigüedades geográficas</small>
       </div>
 
       <div class="form-group">
