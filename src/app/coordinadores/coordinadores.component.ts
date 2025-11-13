@@ -38,7 +38,9 @@ export class CoordinadoresComponent implements OnInit {
     celular: '',
     email: '',
     confirmado: false,
-    numeroInvitados: 0
+    numeroInvitados: 0,
+    latitud: undefined,
+    longitud: undefined
   };
   
   // Autocomplete Google Maps - Nuevo defensor
@@ -224,7 +226,9 @@ export class CoordinadoresComponent implements OnInit {
       celular: '',
       email: '',
       confirmado: false,
-      numeroInvitados: 0
+      numeroInvitados: 0,
+      latitud: undefined,
+      longitud: undefined
     };
     this.ciudadSugerencias = [];
     this.municipioSugerencias = [];
@@ -258,10 +262,23 @@ export class CoordinadoresComponent implements OnInit {
     }
   }
 
-  seleccionarCiudad(prediction: any): void {
+  async seleccionarCiudad(prediction: any): Promise<void> {
     this.nuevoCoordinador.ciudad = this.googleMapsService.extractCityName(prediction);
     this.ciudadSugerencias = [];
     this.mostrandoSugerenciasCiudad = false;
+    
+    // Obtener coordenadas del lugar seleccionado
+    if (prediction.place_id) {
+      try {
+        const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
+        if (coords) {
+          this.nuevoCoordinador.latitud = coords.lat;
+          this.nuevoCoordinador.longitud = coords.lng;
+        }
+      } catch (error) {
+        console.error('Error al obtener coordenadas:', error);
+      }
+    }
   }
 
   async buscarMunicipios(event: any): Promise<void> {
@@ -283,10 +300,23 @@ export class CoordinadoresComponent implements OnInit {
     }
   }
 
-  seleccionarMunicipio(prediction: any): void {
+  async seleccionarMunicipio(prediction: any): Promise<void> {
     this.nuevoCoordinador.municipio = this.googleMapsService.extractMunicipalityName(prediction);
     this.municipioSugerencias = [];
     this.mostrandoSugerenciasMunicipio = false;
+    
+    // Obtener coordenadas del lugar seleccionado
+    if (prediction.place_id) {
+      try {
+        const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
+        if (coords) {
+          this.nuevoCoordinador.latitud = coords.lat;
+          this.nuevoCoordinador.longitud = coords.lng;
+        }
+      } catch (error) {
+        console.error('Error al obtener coordenadas:', error);
+      }
+    }
   }
 
   guardarNuevoCoordinador(): void {
@@ -515,11 +545,24 @@ export class CoordinadoresComponent implements OnInit {
     }
   }
 
-  seleccionarCiudadEditar(prediction: any): void {
+  async seleccionarCiudadEditar(prediction: any): Promise<void> {
     if (!this.coordinadorEditando) return;
     this.coordinadorEditando.ciudad = this.googleMapsService.extractCityName(prediction);
     this.ciudadSugerenciasEditar = [];
     this.mostrandoSugerenciasCiudadEditar = false;
+    
+    // Obtener coordenadas del lugar seleccionado
+    if (prediction.place_id) {
+      try {
+        const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
+        if (coords) {
+          this.coordinadorEditando.latitud = coords.lat;
+          this.coordinadorEditando.longitud = coords.lng;
+        }
+      } catch (error) {
+        console.error('Error al obtener coordenadas:', error);
+      }
+    }
   }
 
   async buscarMunicipiosEditar(event: any): Promise<void> {
@@ -542,11 +585,24 @@ export class CoordinadoresComponent implements OnInit {
     }
   }
 
-  seleccionarMunicipioEditar(prediction: any): void {
+  async seleccionarMunicipioEditar(prediction: any): Promise<void> {
     if (!this.coordinadorEditando) return;
     this.coordinadorEditando.municipio = this.googleMapsService.extractMunicipalityName(prediction);
     this.municipioSugerenciasEditar = [];
     this.mostrandoSugerenciasMunicipioEditar = false;
+    
+    // Obtener coordenadas del lugar seleccionado
+    if (prediction.place_id) {
+      try {
+        const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
+        if (coords) {
+          this.coordinadorEditando.latitud = coords.lat;
+          this.coordinadorEditando.longitud = coords.lng;
+        }
+      } catch (error) {
+        console.error('Error al obtener coordenadas:', error);
+      }
+    }
   }
 
   guardarEdicion(): void {

@@ -98,5 +98,35 @@ export class GoogleMapsService {
     }
     return prediction.description.split(',')[0];
   }
+
+  async getPlaceCoordinates(placeId: string): Promise<{ lat: number; lng: number } | null> {
+    await this.waitForGoogleMapsToLoad();
+    
+    return new Promise((resolve, reject) => {
+      if (!this.placesService) {
+        // Crear PlacesService si no existe
+        const map = new google.maps.Map(document.createElement('div'));
+        this.placesService = new google.maps.places.PlacesService(map);
+      }
+
+      const request = {
+        placeId: placeId,
+        fields: ['geometry']
+      };
+
+      this.placesService.getDetails(request, (place: any, status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
+          const location = place.geometry.location;
+          resolve({
+            lat: location.lat(),
+            lng: location.lng()
+          });
+        } else {
+          console.error('Error al obtener coordenadas:', status);
+          resolve(null);
+        }
+      });
+    });
+  }
 }
 

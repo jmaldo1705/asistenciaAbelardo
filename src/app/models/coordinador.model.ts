@@ -9,6 +9,8 @@ export interface Coordinador {
   confirmado: boolean;
   numeroInvitados: number;
   observaciones?: string;
+  latitud?: number;
+  longitud?: number;
   llamadas?: Llamada[];
   numeroLlamadas?: number;
 }
