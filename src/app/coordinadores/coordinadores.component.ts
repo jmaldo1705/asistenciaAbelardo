@@ -570,23 +570,59 @@ export class CoordinadoresComponent implements OnInit {
     this.coordinadorService.obtenerTodos().subscribe({
       next: (coordinadores) => {
         const datosExcel: any[] = [];
+        const datosLlamadas: any[] = [];
 
         coordinadores.forEach(coordinador => {
-          // Agregar fila del defensor
+          // Obtener última llamada
+          const ultimaLlamada = coordinador.llamadas && coordinador.llamadas.length > 0
+            ? coordinador.llamadas.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())[0]
+            : null;
+
+          // Obtener eventos únicos de las llamadas
+          const eventosLlamadas = coordinador.llamadas
+            ? coordinador.llamadas
+                .filter(llamada => llamada.evento)
+                .map(llamada => llamada.evento?.nombre)
+                .filter((nombre, index, self) => nombre && self.indexOf(nombre) === index)
+                .join(', ')
+            : '-';
+
+          // Agregar fila del defensor con la nueva estructura
           datosExcel.push({
             'Municipio': coordinador.municipio || '-',
             'Sector': coordinador.sector || '-',
             'Nombre Completo': coordinador.nombreCompleto,
             'Celular': coordinador.celular,
             'Email': coordinador.email || '-',
+            'Estado': coordinador.confirmado ? 'Confirmado' : 'No Confirmado',
+            'Número de Invitados': coordinador.numeroInvitados || 0,
             'Número de Llamadas': coordinador.llamadas ? coordinador.llamadas.length : 0,
-            'Número de Invitados': coordinador.numeroInvitados,
-            'Fecha Llamada': this.formatearFecha(coordinador.fechaLlamada),
+            'Última Fecha de Llamada': ultimaLlamada ? this.formatearFecha(ultimaLlamada.fecha) : 'No contactado',
+            'Eventos Asociados': eventosLlamadas,
+            'Latitud': coordinador.latitud || '-',
+            'Longitud': coordinador.longitud || '-',
             'Observaciones': coordinador.observaciones || '-'
           });
+
+          // Agregar detalle de llamadas si existen
+          if (coordinador.llamadas && coordinador.llamadas.length > 0) {
+            coordinador.llamadas.forEach(llamada => {
+              datosLlamadas.push({
+                'Defensor': coordinador.nombreCompleto,
+                'Celular': coordinador.celular,
+                'Municipio': coordinador.municipio || '-',
+                'Sector': coordinador.sector || '-',
+                'Fecha Llamada': this.formatearFecha(llamada.fecha),
+                'Evento': llamada.evento?.nombre || '-',
+                'Lugar Evento': llamada.evento?.lugar || '-',
+                'Fecha Evento': llamada.evento?.fecha ? this.formatearFecha(llamada.evento.fecha) : '-',
+                'Observaciones Llamada': llamada.observaciones || '-'
+              });
+            });
+          }
         });
 
-        this.generarArchivoExcel(datosExcel);
+        this.generarArchivoExcel(datosExcel, datosLlamadas);
       },
       error: (error) => {
         this.toastService.error('Error al obtener datos para exportar');
@@ -595,34 +631,41 @@ export class CoordinadoresComponent implements OnInit {
     });
   }
 
-  private generarArchivoExcel(datos: any[]): void {
+  private generarArchivoExcel(datos: any[], datosLlamadas: any[] = []): void {
     // Crear libro de trabajo
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+
+    // ===== HOJA 1: DEFENSORES =====
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datos);
 
-    // Ajustar ancho de columnas
+    // Ajustar ancho de columnas para la hoja de defensores
     const colWidths = [
       { wch: 20 }, // Municipio
       { wch: 20 }, // Sector
       { wch: 30 }, // Nombre Completo
       { wch: 15 }, // Celular
       { wch: 25 }, // Email
-      { wch: 18 }, // Número de Llamadas
+      { wch: 15 }, // Estado
       { wch: 18 }, // Número de Invitados
-      { wch: 20 }, // Fecha Llamada
-      { wch: 30 }  // Observaciones
+      { wch: 18 }, // Número de Llamadas
+      { wch: 25 }, // Última Fecha de Llamada
+      { wch: 30 }, // Eventos Asociados
+      { wch: 12 }, // Latitud
+      { wch: 12 }, // Longitud
+      { wch: 40 }  // Observaciones
     ];
     ws['!cols'] = colWidths;
 
     // Obtener el rango de celdas
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
 
-    // Aplicar estilos a las celdas de encabezado (primera fila)
+    // Aplicar estilos a las celdas de encabezado (primera fila) - Usar el nuevo color profesional
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const address = XLSX.utils.encode_col(C) + '1';
       if (!ws[address]) continue;
 
       ws[address].s = {
-        fill: { fgColor: { rgb: "003893" } },
+        fill: { fgColor: { rgb: "1E293B" } }, // Color gris oscuro profesional
         font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, name: "Calibri" },
         alignment: { horizontal: "center", vertical: "center" },
         border: {
@@ -640,6 +683,14 @@ export class CoordinadoresComponent implements OnInit {
         const address = XLSX.utils.encode_cell({ r: R, c: C });
         if (!ws[address]) continue;
 
+        // Determinar alineación según la columna
+        let horizontalAlign: "left" | "center" | "right" = "center";
+        if (C === 2 || C === 9 || C === 12) { // Nombre Completo, Eventos Asociados, Observaciones
+          horizontalAlign = "left";
+        } else if (C === 10 || C === 11) { // Latitud, Longitud
+          horizontalAlign = "right";
+        }
+
         ws[address].s = {
           fill: { fgColor: { rgb: "FFFFFF" } },
           font: {
@@ -648,7 +699,7 @@ export class CoordinadoresComponent implements OnInit {
             bold: false
           },
           alignment: {
-            horizontal: C === 2 ? "left" : "center",
+            horizontal: horizontalAlign,
             vertical: "center",
             wrapText: true
           },
@@ -669,9 +720,91 @@ export class CoordinadoresComponent implements OnInit {
     }
     ws['!rows'] = rowHeights;
 
-    // Crear el libro y agregar la hoja
-    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    // Agregar hoja de defensores al libro
     XLSX.utils.book_append_sheet(wb, ws, 'Defensores');
+
+    // ===== HOJA 2: HISTORIAL DE LLAMADAS (si hay datos) =====
+    if (datosLlamadas.length > 0) {
+      const wsLlamadas: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datosLlamadas);
+
+      // Ajustar ancho de columnas para la hoja de llamadas
+      const colWidthsLlamadas = [
+        { wch: 30 }, // Defensor
+        { wch: 15 }, // Celular
+        { wch: 20 }, // Municipio
+        { wch: 20 }, // Sector
+        { wch: 25 }, // Fecha Llamada
+        { wch: 30 }, // Evento
+        { wch: 30 }, // Lugar Evento
+        { wch: 25 }, // Fecha Evento
+        { wch: 40 }  // Observaciones Llamada
+      ];
+      wsLlamadas['!cols'] = colWidthsLlamadas;
+
+      // Obtener el rango de celdas
+      const rangeLlamadas = XLSX.utils.decode_range(wsLlamadas['!ref'] || 'A1');
+
+      // Aplicar estilos a las celdas de encabezado
+      for (let C = rangeLlamadas.s.c; C <= rangeLlamadas.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + '1';
+        if (!wsLlamadas[address]) continue;
+
+        wsLlamadas[address].s = {
+          fill: { fgColor: { rgb: "1E293B" } },
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, name: "Calibri" },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+
+      // Aplicar estilos a las filas de datos
+      for (let R = rangeLlamadas.s.r + 1; R <= rangeLlamadas.e.r; ++R) {
+        for (let C = rangeLlamadas.s.c; C <= rangeLlamadas.e.c; ++C) {
+          const address = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!wsLlamadas[address]) continue;
+
+          let horizontalAlign: "left" | "center" | "right" = "center";
+          if (C === 0 || C === 4 || C === 5 || C === 6 || C === 7 || C === 8) { // Columnas de texto
+            horizontalAlign = "left";
+          }
+
+          wsLlamadas[address].s = {
+            fill: { fgColor: { rgb: "FFFFFF" } },
+            font: {
+              sz: 11,
+              name: "Calibri",
+              bold: false
+            },
+            alignment: {
+              horizontal: horizontalAlign,
+              vertical: "center",
+              wrapText: true
+            },
+            border: {
+              top: { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left: { style: "thin", color: { rgb: "CCCCCC" } },
+              right: { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+        }
+      }
+
+      // Configurar altura de filas
+      const rowHeightsLlamadas = [];
+      for (let R = rangeLlamadas.s.r; R <= rangeLlamadas.e.r; ++R) {
+        rowHeightsLlamadas.push({ hpx: R === 0 ? 30 : 25 });
+      }
+      wsLlamadas['!rows'] = rowHeightsLlamadas;
+
+      // Agregar hoja de llamadas al libro
+      XLSX.utils.book_append_sheet(wb, wsLlamadas, 'Historial de Llamadas');
+    }
 
     // Generar archivo
     const fecha = new Date().toISOString().split('T')[0];
