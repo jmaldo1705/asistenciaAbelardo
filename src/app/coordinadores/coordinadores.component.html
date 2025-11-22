@@ -39,13 +39,16 @@
   <!-- Botón para agregar nuevo defensor -->
   <div class="action-bar">
     <button class="btn-nuevo" (click)="abrirModalNuevo()">
-      ➕ Agregar Defensor
+      <span class="btn-icon-main">+</span> Agregar Defensor
+    </button>
+    <button class="btn-eventos" (click)="irAEventos()">
+      <span class="btn-icon-main">📅</span> Gestionar Eventos
     </button>
     <button class="btn-exportar" (click)="exportarAExcel()">
-      📊 Exportar a Excel
+      <span class="btn-icon-main">↓</span> Exportar a Excel
     </button>
     <button class="btn-mapa" (click)="irAMapaCalor()">
-      🗺️ Ver Mapa de Calor
+      <span class="btn-icon-main">🗺</span> Ver Mapa de Calor
     </button>
   </div>
 
@@ -53,12 +56,8 @@
   <div class="filters">
     <div class="filter-group">
       <label>🔍 Buscar:</label>
-      <input
-        type="text"
-        [(ngModel)]="filtroMunicipio"
-        (ngModelChange)="resetearPaginacion()"
-        placeholder="Buscar por ciudad, municipio, nombre, celular, email u observaciones..."
-        class="filter-input">
+      <input type="text" [(ngModel)]="filtroMunicipio" (ngModelChange)="resetearPaginacion()"
+        placeholder="Buscar por municipio, sector, nombre, celular, email u observaciones..." class="filter-input">
     </div>
   </div>
 
@@ -67,22 +66,20 @@
     <table>
       <thead>
         <tr>
-          <th>Ciudad</th>
           <th>Municipio</th>
+          <th>Sector</th>
           <th>Defensor</th>
           <th>Celular</th>
           <th>Email</th>
           <th>Llamadas</th>
           <th>Fecha Llamada</th>
-          <th>Observaciones</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let coordinador of coordinadoresPaginados"
-            [class.confirmado-row]="coordinador.confirmado">
-          <td><strong>{{ coordinador.ciudad || '-' }}</strong></td>
+        <tr *ngFor="let coordinador of coordinadoresPaginados" [class.confirmado-row]="coordinador.confirmado">
           <td><strong>{{ coordinador.municipio || '-' }}</strong></td>
+          <td><strong>{{ coordinador.sector || '-' }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
           <td>
             <a href="tel:{{ coordinador.celular }}" class="phone-link">
@@ -95,103 +92,78 @@
             </a>
             <span *ngIf="!coordinador.email">-</span>
           </td>
-          <td class="llamadas-cell">
-            <span class="llamadas-number">{{ coordinador.numeroLlamadas || 0 }}</span>
-          </td>
-          <td class="fecha-cell">{{ formatearFecha(coordinador.fechaLlamada) }}</td>
-          <td class="observaciones-cell">{{ coordinador.observaciones || '-' }}</td>
-          <td>
-            <div class="action-buttons">
-              <button
-                class="btn btn-edit"
-                (click)="abrirModalEditar(coordinador)"
-                title="Editar defensor">
-                ✏️
+          <td>{{ coordinador.llamadas ? coordinador.llamadas.length : 0 }}</td>
+          <td>{{ formatearFecha(coordinador.fechaLlamada) }}</td>
+          <td class="actions-cell">
+            <div class="actions-buttons-group">
+              <button class="btn-action btn-action-call" (click)="abrirModalRegistrarLlamada(coordinador)" title="Registrar llamada">
+                <span class="btn-icon">☎</span>
               </button>
-              <button
-                class="btn btn-view"
-                (click)="verHistorialLlamadas(coordinador)"
-                title="Ver historial de llamadas">
-                👁️
+              <button class="btn-action btn-action-view" (click)="verHistorialLlamadas(coordinador)" title="Ver historial">
+                <span class="btn-icon">📋</span>
               </button>
-              <button
-                class="btn btn-danger"
-                (click)="eliminarCoordinador(coordinador)"
-                title="Eliminar">
-                <span class="icon-delete">🗑</span>
+              <button class="btn-action btn-action-edit" (click)="abrirModalEditar(coordinador)" title="Editar">
+                <span class="btn-icon">✎</span>
+              </button>
+              <button class="btn-action btn-action-delete" (click)="eliminarCoordinador(coordinador)" title="Eliminar">
+                <span class="btn-icon">✕</span>
               </button>
             </div>
           </td>
         </tr>
         <tr *ngIf="coordinadoresFiltrados.length === 0">
-          <td colspan="9" class="empty-message">
+          <td colspan="8" class="empty-message">
             No se encontraron defensores
           </td>
         </tr>
-      </tbody>
-    </table>
-  </div>
+  </tbody>
+  </table>
+</div>
 
-  <!-- Controles de paginación -->
-  <div class="pagination-container" *ngIf="coordinadoresFiltrados.length > 0">
-    <div class="pagination-info">
-      <span>Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} -
-        {{ Math.min(paginaActual * itemsPorPagina, coordinadoresFiltrados.length) }}
-        de {{ coordinadoresFiltrados.length }} defensores</span>
+<!-- Controles de paginación -->
+<div class="pagination-container" *ngIf="coordinadoresFiltrados.length > 0">
+  <div class="pagination-info">
+    <span>Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} -
+      {{ Math.min(paginaActual * itemsPorPagina, coordinadoresFiltrados.length) }}
+      de {{ coordinadoresFiltrados.length }} defensores</span>
 
-      <div class="items-per-page">
-        <label>Mostrar:</label>
-        <select (change)="cambiarItemsPorPagina($event)" [value]="itemsPorPagina" class="page-size-select">
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-        <span>por página</span>
-      </div>
-    </div>
-
-    <div class="pagination-controls" *ngIf="totalPaginas > 1">
-      <button
-        class="page-btn"
-        (click)="cambiarPagina(1)"
-        [disabled]="paginaActual === 1"
-        title="Primera página">
-        ⟪
-      </button>
-      <button
-        class="page-btn"
-        (click)="cambiarPagina(paginaActual - 1)"
-        [disabled]="paginaActual === 1"
-        title="Página anterior">
-        ‹
-      </button>
-
-      <button
-        *ngFor="let pagina of paginasArray"
-        class="page-btn"
-        [class.active]="pagina === paginaActual"
-        (click)="cambiarPagina(pagina)">
-        {{ pagina }}
-      </button>
-
-      <button
-        class="page-btn"
-        (click)="cambiarPagina(paginaActual + 1)"
-        [disabled]="paginaActual === totalPaginas"
-        title="Página siguiente">
-        ›
-      </button>
-      <button
-        class="page-btn"
-        (click)="cambiarPagina(totalPaginas)"
-        [disabled]="paginaActual === totalPaginas"
-        title="Última página">
-        ⟫
-      </button>
+    <div class="items-per-page">
+      <label>Mostrar:</label>
+      <select (change)="cambiarItemsPorPagina($event)" [value]="itemsPorPagina" class="page-size-select">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+      <span>por página</span>
     </div>
   </div>
+
+  <div class="pagination-controls" *ngIf="totalPaginas > 1">
+    <button class="page-btn" (click)="cambiarPagina(1)" [disabled]="paginaActual === 1" title="Primera página">
+      ⟪
+    </button>
+    <button class="page-btn" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"
+      title="Página anterior">
+      ‹
+    </button>
+
+    <button *ngFor="let pagina of paginasArray" class="page-btn" [class.active]="pagina === paginaActual"
+      (click)="cambiarPagina(pagina)">
+      {{ pagina }}
+    </button>
+
+    <button class="page-btn" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"
+      title="Página siguiente">
+      ›
+    </button>
+    <button class="page-btn" (click)="cambiarPagina(totalPaginas)" [disabled]="paginaActual === totalPaginas"
+      title="Última página">
+      ⟫
+    </button>
+  </div>
+</div>
 </div>
 
 <!-- Modal para nuevo defensor -->
@@ -202,19 +174,12 @@
     </div>
     <div class="modal-body">
       <div class="form-group autocomplete-container">
-        <label>Ciudad 🌍</label>
-        <input
-          type="text"
-          [(ngModel)]="nuevoCoordinador.ciudad"
-          (input)="buscarCiudades($event)"
-          class="form-control"
-          placeholder="Escribe para buscar ciudad (opcional)..."
-          autocomplete="off">
-        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasCiudad">
-          <div 
-            class="suggestion-item" 
-            *ngFor="let sugerencia of ciudadSugerencias"
-            (click)="seleccionarCiudad(sugerencia)">
+        <label>Municipio 🌍</label>
+        <input type="text" [(ngModel)]="nuevoCoordinador.municipio" (input)="buscarMunicipios($event)" class="form-control"
+          placeholder="Escribe para buscar municipio o ciudad (opcional)..." autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipio">
+          <div class="suggestion-item" *ngFor="let sugerencia of municipioSugerencias"
+            (click)="seleccionarMunicipio(sugerencia)">
             <span class="suggestion-icon">📍</span>
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
@@ -222,19 +187,12 @@
       </div>
 
       <div class="form-group autocomplete-container">
-        <label>Municipio 🏘️</label>
-        <input
-          type="text"
-          [(ngModel)]="nuevoCoordinador.municipio"
-          (input)="buscarMunicipios($event)"
-          class="form-control"
-          placeholder="Escribe para buscar municipio (opcional)..."
-          autocomplete="off">
-        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipio">
-          <div 
-            class="suggestion-item" 
-            *ngFor="let sugerencia of municipioSugerencias"
-            (click)="seleccionarMunicipio(sugerencia)">
+        <label>Sector 🏘️</label>
+        <input type="text" [(ngModel)]="nuevoCoordinador.sector" (input)="buscarSectores($event)"
+          class="form-control" placeholder="Escribe para buscar sector, vereda o corregimiento (opcional)..." autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasSector">
+          <div class="suggestion-item" *ngFor="let sugerencia of sectorSugerencias"
+            (click)="seleccionarSector(sugerencia)">
             <span class="suggestion-icon">📍</span>
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
@@ -243,34 +201,24 @@
 
       <div class="form-group">
         <label>Nombre Completo *</label>
-        <input
-          type="text"
-          [(ngModel)]="nuevoCoordinador.nombreCompleto"
-          class="form-control"
+        <input type="text" [(ngModel)]="nuevoCoordinador.nombreCompleto" class="form-control"
           placeholder="Nombre completo del defensor">
       </div>
 
       <div class="form-group">
         <label>Celular *</label>
-        <input
-          type="tel"
-          [(ngModel)]="nuevoCoordinador.celular"
-          class="form-control"
-          placeholder="Número de celular">
+        <input type="tel" [(ngModel)]="nuevoCoordinador.celular" class="form-control" placeholder="Número de celular">
       </div>
 
       <div class="form-group">
         <label>Correo Electrónico</label>
-        <input
-          type="email"
-          [(ngModel)]="nuevoCoordinador.email"
-          class="form-control"
+        <input type="email" [(ngModel)]="nuevoCoordinador.email" class="form-control"
           placeholder="correo@ejemplo.com (opcional)">
       </div>
 
       <p class="form-note">* Campos obligatorios</p>
-      <p class="form-note">🌍 Los campos de ciudad y municipio usan Google Maps para autocompletado</p>
-      <p class="form-note">💡 Puedes dejar ciudad o municipio en blanco, pero al menos uno debe estar completo</p>
+      <p class="form-note">🌍 Los campos de municipio y sector usan Google Maps para autocompletado</p>
+      <p class="form-note">💡 Puedes dejar municipio o sector en blanco, pero al menos uno debe estar completo</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="cerrarModalNuevo()">Cancelar</button>
@@ -323,19 +271,12 @@
     </div>
     <div class="modal-body" *ngIf="coordinadorEditando">
       <div class="form-group autocomplete-container">
-        <label>Ciudad 🌍</label>
-        <input
-          type="text"
-          [(ngModel)]="coordinadorEditando.ciudad"
-          (input)="buscarCiudadesEditar($event)"
-          class="form-control"
-          placeholder="Escribe para buscar ciudad (opcional)..."
-          autocomplete="off">
-        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasCiudadEditar">
-          <div 
-            class="suggestion-item" 
-            *ngFor="let sugerencia of ciudadSugerenciasEditar"
-            (click)="seleccionarCiudadEditar(sugerencia)">
+        <label>Municipio 🌍</label>
+        <input type="text" [(ngModel)]="coordinadorEditando.municipio" (input)="buscarMunicipiosEditar($event)"
+          class="form-control" placeholder="Escribe para buscar municipio o ciudad (opcional)..." autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipioEditar">
+          <div class="suggestion-item" *ngFor="let sugerencia of municipioSugerenciasEditar"
+            (click)="seleccionarMunicipioEditar(sugerencia)">
             <span class="suggestion-icon">📍</span>
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
@@ -343,19 +284,12 @@
       </div>
 
       <div class="form-group autocomplete-container">
-        <label>Municipio 🏘️</label>
-        <input
-          type="text"
-          [(ngModel)]="coordinadorEditando.municipio"
-          (input)="buscarMunicipiosEditar($event)"
-          class="form-control"
-          placeholder="Escribe para buscar municipio (opcional)..."
-          autocomplete="off">
-        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipioEditar">
-          <div 
-            class="suggestion-item" 
-            *ngFor="let sugerencia of municipioSugerenciasEditar"
-            (click)="seleccionarMunicipioEditar(sugerencia)">
+        <label>Sector 🏘️</label>
+        <input type="text" [(ngModel)]="coordinadorEditando.sector" (input)="buscarSectoresEditar($event)"
+          class="form-control" placeholder="Escribe para buscar sector, vereda o corregimiento (opcional)..." autocomplete="off">
+        <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasSectorEditar">
+          <div class="suggestion-item" *ngFor="let sugerencia of sectorSugerenciasEditar"
+            (click)="seleccionarSectorEditar(sugerencia)">
             <span class="suggestion-icon">📍</span>
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
@@ -364,35 +298,26 @@
 
       <div class="form-group">
         <label>Nombre Completo *</label>
-        <input
-          type="text"
-          [(ngModel)]="coordinadorEditando.nombreCompleto"
-          class="form-control"
+        <input type="text" [(ngModel)]="coordinadorEditando.nombreCompleto" class="form-control"
           placeholder="Nombre completo del defensor">
       </div>
 
       <div class="form-group">
         <label>Celular *</label>
-        <input
-          type="tel"
-          [(ngModel)]="coordinadorEditando.celular"
-          class="form-control"
+        <input type="tel" [(ngModel)]="coordinadorEditando.celular" class="form-control"
           placeholder="Número de celular">
       </div>
 
       <div class="form-group">
         <label>Correo Electrónico</label>
-        <input
-          type="email"
-          [(ngModel)]="coordinadorEditando.email"
-          class="form-control"
+        <input type="email" [(ngModel)]="coordinadorEditando.email" class="form-control"
           placeholder="correo@ejemplo.com (opcional)">
       </div>
 
       <p class="form-note">* Campos obligatorios</p>
       <p class="form-note">💡 Las llamadas y observaciones se gestionan desde el historial de llamadas (botón 👁️)</p>
-      <p class="form-note">🌍 Los campos de ciudad y municipio usan Google Maps para autocompletado</p>
-      <p class="form-note">💡 Puedes dejar ciudad o municipio en blanco, pero al menos uno debe estar completo</p>
+      <p class="form-note">🌍 Los campos de municipio y sector usan Google Maps para autocompletado</p>
+      <p class="form-note">💡 Puedes dejar municipio o sector en blanco, pero al menos uno debe estar completo</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="cerrarModalEditar()">Cancelar</button>
@@ -410,23 +335,11 @@
     </div>
     <div class="modal-body" *ngIf="coordinadorSeleccionadoHistorial">
       <div class="modal-info">
-        <p><strong>Ciudad:</strong> {{ coordinadorSeleccionadoHistorial.ciudad }}</p>
-        <p><strong>Municipio:</strong> {{ coordinadorSeleccionadoHistorial.municipio }}</p>
+        <p><strong>Municipio:</strong> {{ coordinadorSeleccionadoHistorial.municipio || '-' }}</p>
+        <p><strong>Sector:</strong> {{ coordinadorSeleccionadoHistorial.sector || '-' }}</p>
         <p><strong>Defensor:</strong> {{ coordinadorSeleccionadoHistorial.nombreCompleto }}</p>
         <p><strong>Celular:</strong> {{ coordinadorSeleccionadoHistorial.celular }}</p>
         <p><strong>Total de llamadas:</strong> {{ historialLlamadas.length }}</p>
-      </div>
-
-      <div class="form-group">
-        <label>Registrar Nueva Llamada</label>
-        <textarea
-          [(ngModel)]="nuevaLlamadaObservaciones"
-          rows="3"
-          class="form-control"
-          placeholder="Observaciones de la llamada..."></textarea>
-        <button class="btn btn-primary mt-2" (click)="registrarNuevaLlamada()">
-          ➕ Registrar Llamada
-        </button>
       </div>
 
       <hr>
@@ -440,12 +353,12 @@
         <div class="llamada-item" *ngFor="let llamada of historialLlamadas">
           <div class="llamada-header">
             <span class="llamada-fecha">📅 {{ formatearFecha(llamada.fecha) }}</span>
-            <button
-              class="btn-delete-llamada"
-              (click)="eliminarLlamada(llamada.id!)"
-              title="Eliminar llamada">
+            <button class="btn-delete-llamada" (click)="eliminarLlamada(llamada.id!)" title="Eliminar llamada">
               🗑️
             </button>
+          </div>
+          <div class="llamada-evento" *ngIf="llamada.evento">
+            <strong>📅 Evento:</strong> {{ llamada.evento.nombre }} - {{ formatearFecha(llamada.evento.fecha) }}
           </div>
           <div class="llamada-observaciones">
             {{ llamada.observaciones || 'Sin observaciones' }}
@@ -455,6 +368,48 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="cerrarModalHistorial()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para registrar llamada rápida -->
+<div class="modal-overlay" *ngIf="mostrarModalRegistrarLlamada" (click)="cerrarModalRegistrarLlamada()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📞 Registrar Llamada</h2>
+      <button class="close-btn" (click)="cerrarModalRegistrarLlamada()">✕</button>
+    </div>
+    <div class="modal-body" *ngIf="coordinadorSeleccionadoLlamada">
+      <div class="modal-info">
+        <p><strong>Municipio:</strong> {{ coordinadorSeleccionadoLlamada.municipio || '-' }}</p>
+        <p><strong>Sector:</strong> {{ coordinadorSeleccionadoLlamada.sector || '-' }}</p>
+        <p><strong>Defensor:</strong> {{ coordinadorSeleccionadoLlamada.nombreCompleto }}</p>
+        <p><strong>Celular:</strong> {{ coordinadorSeleccionadoLlamada.celular }}</p>
+      </div>
+
+      <div class="form-group">
+        <label>Evento *</label>
+        <select [(ngModel)]="eventoSeleccionadoLlamada" class="form-control" required>
+          <option [value]="null">Seleccione un evento</option>
+          <option *ngFor="let evento of eventos" [value]="evento.id">
+            {{ evento.nombre }} - {{ formatearFecha(evento.fecha) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Observaciones</label>
+        <textarea [(ngModel)]="observacionesLlamadaRapida" rows="4" class="form-control"
+          placeholder="Observaciones de la llamada..."></textarea>
+      </div>
+
+      <p class="form-note">* El evento es obligatorio para registrar la llamada</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalRegistrarLlamada()">Cancelar</button>
+      <button class="btn btn-primary" (click)="registrarLlamadaRapida()" [disabled]="!eventoSeleccionadoLlamada">
+        💾 Registrar Llamada
+      </button>
     </div>
   </div>
 </div>

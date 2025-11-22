@@ -1,0 +1,95 @@
+<div class="container">
+  <!-- Encabezado -->
+  <div class="header">
+    <h1>📅 Gestión de Eventos</h1>
+  </div>
+
+  <!-- Botón para agregar nuevo evento -->
+  <div class="action-bar">
+    <button class="btn-nuevo" (click)="abrirModal()">
+      ➕ Nuevo Evento
+    </button>
+    <button class="btn-secondary" (click)="volverACoordinadores()">
+      ← Volver a Coordinadores
+    </button>
+  </div>
+
+  <!-- Lista de eventos -->
+  <div class="eventos-grid">
+    <div *ngFor="let evento of eventos" class="evento-card">
+      <div class="evento-header">
+        <h3>{{ evento.nombre }}</h3>
+        <div class="action-buttons">
+          <button class="btn btn-edit" (click)="abrirModal(evento)" title="Editar evento">
+            ✏️
+          </button>
+          <button class="btn btn-danger" (click)="eliminarEvento(evento.id!)" title="Eliminar">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div class="evento-body">
+        <p class="evento-info">
+          <span class="info-icon">📍</span>
+          <span class="info-label">Lugar:</span>
+          <span class="info-value">{{ evento.lugar }}</span>
+        </p>
+        <p class="evento-info">
+          <span class="info-icon">📅</span>
+          <span class="info-label">Fecha:</span>
+          <span class="info-value">{{ evento.fecha | date:'medium' }}</span>
+        </p>
+        <p *ngIf="evento.observaciones" class="evento-observaciones">
+          <strong>Observaciones:</strong> {{ evento.observaciones }}
+        </p>
+      </div>
+    </div>
+
+    <div *ngIf="eventos.length === 0" class="empty-state">
+      <p>📅 No hay eventos creados</p>
+      <p class="empty-subtitle">Crea tu primer evento haciendo clic en "Nuevo Evento"</p>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modoEdicion ? '✏️ Editar' : '➕ Nuevo' }} Evento</h2>
+        <button class="close-btn" (click)="cerrarModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nombre del Evento *</label>
+          <input [(ngModel)]="eventoActual.nombre" type="text" class="form-control" placeholder="Ej: Reunión Regional">
+        </div>
+
+        <div class="form-group">
+          <label>Lugar *</label>
+          <input [(ngModel)]="eventoActual.lugar" type="text" class="form-control"
+            placeholder="Ej: Barranquilla, Atlántico">
+        </div>
+
+        <div class="form-group">
+          <label>Fecha y Hora *</label>
+          <input [(ngModel)]="eventoActual.fecha" type="datetime-local" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Observaciones</label>
+          <textarea [(ngModel)]="eventoActual.observaciones" class="form-control" rows="3"
+            placeholder="Detalles adicionales del evento..."></textarea>
+        </div>
+
+        <p class="form-note">* Campos obligatorios</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardarEvento()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -7,6 +7,8 @@ import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 import { GoogleMapsService } from '../services/google-maps.service';
 import { Coordinador, Llamada, Estadisticas } from '../models/coordinador.model';
+import { Evento } from '../models/evento.model';
+import { EventoService } from '../services/evento.service';
 import * as XLSX from 'xlsx-js-style';
 
 @Component({
@@ -32,8 +34,8 @@ export class CoordinadoresComponent implements OnInit {
   // Modal de nuevo coordinador
   mostrarModalNuevo: boolean = false;
   nuevoCoordinador: Coordinador = {
-    ciudad: '',
     municipio: '',
+    sector: '',
     nombreCompleto: '',
     celular: '',
     email: '',
@@ -42,24 +44,36 @@ export class CoordinadoresComponent implements OnInit {
     latitud: undefined,
     longitud: undefined
   };
-  
+
   // Autocomplete Google Maps - Nuevo defensor
-  ciudadSugerencias: any[] = [];
   municipioSugerencias: any[] = [];
-  mostrandoSugerenciasCiudad: boolean = false;
+  sectorSugerencias: any[] = [];
   mostrandoSugerenciasMunicipio: boolean = false;
-  
+  mostrandoSugerenciasSector: boolean = false;
+
   // Autocomplete Google Maps - Editar defensor
-  ciudadSugerenciasEditar: any[] = [];
   municipioSugerenciasEditar: any[] = [];
-  mostrandoSugerenciasCiudadEditar: boolean = false;
+  sectorSugerenciasEditar: any[] = [];
   mostrandoSugerenciasMunicipioEditar: boolean = false;
+  mostrandoSugerenciasSectorEditar: boolean = false;
 
   // Modal de historial de llamadas
   mostrarModalHistorial: boolean = false;
   coordinadorSeleccionadoHistorial: Coordinador | null = null;
   historialLlamadas: Llamada[] = [];
   nuevaLlamadaObservaciones: string = '';
+  eventos: Evento[] = [];
+  eventoSeleccionadoId: number | null = null;
+
+  // Modal de registrar llamada rápida
+  mostrarModalRegistrarLlamada: boolean = false;
+  coordinadorSeleccionadoLlamada: Coordinador | null = null;
+  observacionesLlamadaRapida: string = '';
+  eventoSeleccionadoLlamada: number | null = null;
+
+  // Modal de asignación de eventos
+  mostrarModalEventos: boolean = false;
+  coordinadorSeleccionadoEventos: Coordinador | null = null;
 
   // Modal de confirmación de eliminación
   mostrarModalEliminar: boolean = false;
@@ -74,12 +88,25 @@ export class CoordinadoresComponent implements OnInit {
     private authService: AuthService,
     private toastService: ToastService,
     private googleMapsService: GoogleMapsService,
+    private eventoService: EventoService,
     private router: Router
   ) { }
 
   ngOnInit(): void {
     this.nombreUsuario = this.authService.getNombreUsuario();
     this.cargarCoordinadores();
+    this.cargarEventos();
+  }
+
+  cargarEventos(): void {
+    this.eventoService.obtenerTodos().subscribe({
+      next: (data) => {
+        this.eventos = data;
+      },
+      error: (error) => {
+        console.error('Error al cargar eventos:', error);
+      }
+    });
   }
 
   cargarCoordinadores(): void {
@@ -103,8 +130,8 @@ export class CoordinadoresComponent implements OnInit {
   get coordinadoresFiltrados(): Coordinador[] {
     const filtrados = this.coordinadores.filter(coord => {
       const coincide = !this.filtroMunicipio ||
-        (coord.ciudad && coord.ciudad.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
         (coord.municipio && coord.municipio.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
+        (coord.sector && coord.sector.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
         coord.nombreCompleto.toLowerCase().includes(this.filtroMunicipio.toLowerCase()) ||
         coord.celular.includes(this.filtroMunicipio) ||
         (coord.email && coord.email.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
@@ -113,16 +140,16 @@ export class CoordinadoresComponent implements OnInit {
       return coincide;
     });
 
-    // Ordenar por ciudad y municipio alfabéticamente
+    // Ordenar por municipio y sector alfabéticamente
     return filtrados.sort((a, b) => {
-      const ciudadA = a.ciudad || '';
-      const ciudadB = b.ciudad || '';
       const municipioA = a.municipio || '';
       const municipioB = b.municipio || '';
-      
-      const ciudadCompare = ciudadA.localeCompare(ciudadB);
-      if (ciudadCompare !== 0) return ciudadCompare;
-      return municipioA.localeCompare(municipioB);
+      const sectorA = a.sector || '';
+      const sectorB = b.sector || '';
+
+      const municipioCompare = municipioA.localeCompare(municipioB);
+      if (municipioCompare !== 0) return municipioCompare;
+      return sectorA.localeCompare(sectorB);
     });
   }
 
@@ -157,6 +184,43 @@ export class CoordinadoresComponent implements OnInit {
   }
 
 
+  abrirModalRegistrarLlamada(coordinador: Coordinador): void {
+    this.coordinadorSeleccionadoLlamada = coordinador;
+    this.observacionesLlamadaRapida = '';
+    this.eventoSeleccionadoLlamada = null;
+    this.mostrarModalRegistrarLlamada = true;
+  }
+
+  cerrarModalRegistrarLlamada(): void {
+    this.mostrarModalRegistrarLlamada = false;
+    this.coordinadorSeleccionadoLlamada = null;
+    this.observacionesLlamadaRapida = '';
+    this.eventoSeleccionadoLlamada = null;
+  }
+
+  registrarLlamadaRapida(): void {
+    if (!this.coordinadorSeleccionadoLlamada || !this.eventoSeleccionadoLlamada) {
+      this.toastService.warning('Debe seleccionar un evento para registrar la llamada');
+      return;
+    }
+
+    this.coordinadorService.registrarLlamada(
+      this.coordinadorSeleccionadoLlamada.id!,
+      this.observacionesLlamadaRapida,
+      this.eventoSeleccionadoLlamada
+    ).subscribe({
+      next: () => {
+        this.toastService.success('📞 Llamada registrada exitosamente');
+        this.cerrarModalRegistrarLlamada();
+        this.cargarCoordinadores();
+      },
+      error: (error) => {
+        this.toastService.error('Error al registrar llamada');
+        console.error('Error:', error);
+      }
+    });
+  }
+
   verHistorialLlamadas(coordinador: Coordinador): void {
     this.coordinadorSeleccionadoHistorial = coordinador;
     this.mostrarModalHistorial = true;
@@ -179,19 +243,28 @@ export class CoordinadoresComponent implements OnInit {
     this.mostrarModalHistorial = false;
     this.coordinadorSeleccionadoHistorial = null;
     this.historialLlamadas = [];
+    this.historialLlamadas = [];
     this.nuevaLlamadaObservaciones = '';
+    this.eventoSeleccionadoId = null;
   }
 
   registrarNuevaLlamada(): void {
     if (!this.coordinadorSeleccionadoHistorial) return;
 
+    if (!this.eventoSeleccionadoId) {
+      this.toastService.warning('Debe seleccionar un evento para registrar la llamada');
+      return;
+    }
+
     this.coordinadorService.registrarLlamada(
       this.coordinadorSeleccionadoHistorial.id!,
-      this.nuevaLlamadaObservaciones
+      this.nuevaLlamadaObservaciones,
+      this.eventoSeleccionadoId
     ).subscribe({
       next: () => {
         this.toastService.success('📞 Llamada registrada exitosamente');
         this.nuevaLlamadaObservaciones = '';
+        this.eventoSeleccionadoId = null;
         this.cargarHistorialLlamadas(this.coordinadorSeleccionadoHistorial!.id!);
         this.cargarCoordinadores();
       },
@@ -220,8 +293,8 @@ export class CoordinadoresComponent implements OnInit {
 
   abrirModalNuevo(): void {
     this.nuevoCoordinador = {
-      ciudad: '',
       municipio: '',
+      sector: '',
       nombreCompleto: '',
       celular: '',
       email: '',
@@ -230,43 +303,43 @@ export class CoordinadoresComponent implements OnInit {
       latitud: undefined,
       longitud: undefined
     };
-    this.ciudadSugerencias = [];
     this.municipioSugerencias = [];
-    this.mostrandoSugerenciasCiudad = false;
+    this.sectorSugerencias = [];
     this.mostrandoSugerenciasMunicipio = false;
+    this.mostrandoSugerenciasSector = false;
     this.mostrarModalNuevo = true;
   }
 
   cerrarModalNuevo(): void {
     this.mostrarModalNuevo = false;
-    this.ciudadSugerencias = [];
     this.municipioSugerencias = [];
+    this.sectorSugerencias = [];
   }
 
-  async buscarCiudades(event: any): Promise<void> {
+  async buscarMunicipios(event: any): Promise<void> {
     const input = event.target.value;
     if (input.length < 2) {
-      this.ciudadSugerencias = [];
-      this.mostrandoSugerenciasCiudad = false;
+      this.municipioSugerencias = [];
+      this.mostrandoSugerenciasMunicipio = false;
       return;
     }
 
     try {
       const predictions = await this.googleMapsService.getCitySuggestions(input, 'CO');
-      this.ciudadSugerencias = predictions;
-      this.mostrandoSugerenciasCiudad = predictions.length > 0;
+      this.municipioSugerencias = predictions;
+      this.mostrandoSugerenciasMunicipio = predictions.length > 0;
     } catch (error) {
-      console.error('Error al buscar ciudades:', error);
-      this.ciudadSugerencias = [];
-      this.mostrandoSugerenciasCiudad = false;
+      console.error('Error al buscar municipios:', error);
+      this.municipioSugerencias = [];
+      this.mostrandoSugerenciasMunicipio = false;
     }
   }
 
-  async seleccionarCiudad(prediction: any): Promise<void> {
-    this.nuevoCoordinador.ciudad = this.googleMapsService.extractCityName(prediction);
-    this.ciudadSugerencias = [];
-    this.mostrandoSugerenciasCiudad = false;
-    
+  async seleccionarMunicipio(prediction: any): Promise<void> {
+    this.nuevoCoordinador.municipio = this.googleMapsService.extractCityName(prediction);
+    this.municipioSugerencias = [];
+    this.mostrandoSugerenciasMunicipio = false;
+
     // Obtener coordenadas del lugar seleccionado
     if (prediction.place_id) {
       try {
@@ -281,30 +354,30 @@ export class CoordinadoresComponent implements OnInit {
     }
   }
 
-  async buscarMunicipios(event: any): Promise<void> {
+  async buscarSectores(event: any): Promise<void> {
     const input = event.target.value;
     if (input.length < 2) {
-      this.municipioSugerencias = [];
-      this.mostrandoSugerenciasMunicipio = false;
+      this.sectorSugerencias = [];
+      this.mostrandoSugerenciasSector = false;
       return;
     }
 
     try {
       const predictions = await this.googleMapsService.getMunicipalitySuggestions(input, 'CO');
-      this.municipioSugerencias = predictions;
-      this.mostrandoSugerenciasMunicipio = predictions.length > 0;
+      this.sectorSugerencias = predictions;
+      this.mostrandoSugerenciasSector = predictions.length > 0;
     } catch (error) {
-      console.error('Error al buscar municipios:', error);
-      this.municipioSugerencias = [];
-      this.mostrandoSugerenciasMunicipio = false;
+      console.error('Error al buscar sectores:', error);
+      this.sectorSugerencias = [];
+      this.mostrandoSugerenciasSector = false;
     }
   }
 
-  async seleccionarMunicipio(prediction: any): Promise<void> {
-    this.nuevoCoordinador.municipio = this.googleMapsService.extractMunicipalityName(prediction);
-    this.municipioSugerencias = [];
-    this.mostrandoSugerenciasMunicipio = false;
-    
+  async seleccionarSector(prediction: any): Promise<void> {
+    this.nuevoCoordinador.sector = this.googleMapsService.extractMunicipalityName(prediction);
+    this.sectorSugerencias = [];
+    this.mostrandoSugerenciasSector = false;
+
     // Obtener coordenadas del lugar seleccionado
     if (prediction.place_id) {
       try {
@@ -321,8 +394,8 @@ export class CoordinadoresComponent implements OnInit {
 
   guardarNuevoCoordinador(): void {
     // Validaciones
-    if (!this.nuevoCoordinador.ciudad.trim() && !this.nuevoCoordinador.municipio.trim()) {
-      this.toastService.warning('Debe ingresar al menos una ciudad o un municipio');
+    if (!this.nuevoCoordinador.municipio.trim() && !this.nuevoCoordinador.sector.trim()) {
+      this.toastService.warning('Debe ingresar al menos un municipio o un sector');
       return;
     }
     if (!this.nuevoCoordinador.nombreCompleto.trim()) {
@@ -349,12 +422,8 @@ export class CoordinadoresComponent implements OnInit {
 
 
   eliminarCoordinador(coordinador: Coordinador): void {
-    // Verificación de permisos - funcionalidad deshabilitada
-    this.toastService.error('❌ No tiene permisos para eliminar defensores');
-    return;
-    
-    // Lógica original mantenida (no se ejecuta)
     this.coordinadorAEliminar = coordinador;
+    this.mostrarModalEliminar = true;
     this.mostrarModalEliminar = true;
   }
 
@@ -380,17 +449,12 @@ export class CoordinadoresComponent implements OnInit {
     this.coordinadorAEliminar = null;
   }
 
-  formatearFecha(fecha: Date | undefined): string {
+  formatearFecha(fecha: Date | string | undefined): string {
     if (!fecha) return 'No contactado';
     return new Date(fecha).toLocaleString('es-ES');
   }
 
   exportarAExcel(): void {
-    // Verificación de permisos - funcionalidad deshabilitada
-    this.toastService.error('❌ No tiene permisos para exportar a Excel');
-    return;
-    
-    // Lógica original mantenida (no se ejecuta)
     this.toastService.info('⏳ Generando archivo Excel...');
 
     // Obtener todos los coordinadores
@@ -401,8 +465,8 @@ export class CoordinadoresComponent implements OnInit {
         coordinadores.forEach(coordinador => {
           // Agregar fila del defensor
           datosExcel.push({
-            'Ciudad': coordinador.ciudad || '-',
             'Municipio': coordinador.municipio || '-',
+            'Sector': coordinador.sector || '-',
             'Nombre Completo': coordinador.nombreCompleto,
             'Celular': coordinador.celular,
             'Email': coordinador.email || '-',
@@ -428,8 +492,8 @@ export class CoordinadoresComponent implements OnInit {
 
     // Ajustar ancho de columnas
     const colWidths = [
-      { wch: 20 }, // Ciudad
       { wch: 20 }, // Municipio
+      { wch: 20 }, // Sector
       { wch: 30 }, // Nombre Completo
       { wch: 15 }, // Celular
       { wch: 25 }, // Email
@@ -517,55 +581,55 @@ export class CoordinadoresComponent implements OnInit {
   }
 
   irAMapaCalor(): void {
-    // Verificación de permisos - funcionalidad deshabilitada
-    this.toastService.error('❌ No tiene permisos para ver el mapa de calor');
-    return;
-    
-    // Lógica original mantenida (no se ejecuta)
     this.router.navigate(['/mapa-calor']);
+  }
+
+  irAEventos(): void {
+    this.router.navigate(['/eventos']);
   }
 
   abrirModalEditar(coordinador: Coordinador): void {
     this.coordinadorEditando = { ...coordinador };
-    this.ciudadSugerenciasEditar = [];
     this.municipioSugerenciasEditar = [];
-    this.mostrandoSugerenciasCiudadEditar = false;
+    this.sectorSugerenciasEditar = [];
     this.mostrandoSugerenciasMunicipioEditar = false;
+    this.mostrandoSugerenciasSectorEditar = false;
     this.mostrarModalEditar = true;
   }
 
   cerrarModalEditar(): void {
     this.mostrarModalEditar = false;
     this.coordinadorEditando = null;
-    this.ciudadSugerenciasEditar = [];
     this.municipioSugerenciasEditar = [];
+    this.sectorSugerenciasEditar = [];
   }
 
-  async buscarCiudadesEditar(event: any): Promise<void> {
+  async buscarMunicipiosEditar(event: any): Promise<void> {
+    if (!this.coordinadorEditando) return;
     const input = event.target.value;
     if (input.length < 2) {
-      this.ciudadSugerenciasEditar = [];
-      this.mostrandoSugerenciasCiudadEditar = false;
+      this.municipioSugerenciasEditar = [];
+      this.mostrandoSugerenciasMunicipioEditar = false;
       return;
     }
 
     try {
       const predictions = await this.googleMapsService.getCitySuggestions(input, 'CO');
-      this.ciudadSugerenciasEditar = predictions;
-      this.mostrandoSugerenciasCiudadEditar = predictions.length > 0;
+      this.municipioSugerenciasEditar = predictions;
+      this.mostrandoSugerenciasMunicipioEditar = predictions.length > 0;
     } catch (error) {
-      console.error('Error al buscar ciudades:', error);
-      this.ciudadSugerenciasEditar = [];
-      this.mostrandoSugerenciasCiudadEditar = false;
+      console.error('Error al buscar municipios:', error);
+      this.municipioSugerenciasEditar = [];
+      this.mostrandoSugerenciasMunicipioEditar = false;
     }
   }
 
-  async seleccionarCiudadEditar(prediction: any): Promise<void> {
+  async seleccionarMunicipioEditar(prediction: any): Promise<void> {
     if (!this.coordinadorEditando) return;
-    this.coordinadorEditando.ciudad = this.googleMapsService.extractCityName(prediction);
-    this.ciudadSugerenciasEditar = [];
-    this.mostrandoSugerenciasCiudadEditar = false;
-    
+    this.coordinadorEditando.municipio = this.googleMapsService.extractCityName(prediction);
+    this.municipioSugerenciasEditar = [];
+    this.mostrandoSugerenciasMunicipioEditar = false;
+
     // Obtener coordenadas del lugar seleccionado
     if (prediction.place_id) {
       try {
@@ -580,32 +644,32 @@ export class CoordinadoresComponent implements OnInit {
     }
   }
 
-  async buscarMunicipiosEditar(event: any): Promise<void> {
+  async buscarSectoresEditar(event: any): Promise<void> {
     if (!this.coordinadorEditando) return;
     const input = event.target.value;
     if (input.length < 2) {
-      this.municipioSugerenciasEditar = [];
-      this.mostrandoSugerenciasMunicipioEditar = false;
+      this.sectorSugerenciasEditar = [];
+      this.mostrandoSugerenciasSectorEditar = false;
       return;
     }
 
     try {
       const predictions = await this.googleMapsService.getMunicipalitySuggestions(input, 'CO');
-      this.municipioSugerenciasEditar = predictions;
-      this.mostrandoSugerenciasMunicipioEditar = predictions.length > 0;
+      this.sectorSugerenciasEditar = predictions;
+      this.mostrandoSugerenciasSectorEditar = predictions.length > 0;
     } catch (error) {
-      console.error('Error al buscar municipios:', error);
-      this.municipioSugerenciasEditar = [];
-      this.mostrandoSugerenciasMunicipioEditar = false;
+      console.error('Error al buscar sectores:', error);
+      this.sectorSugerenciasEditar = [];
+      this.mostrandoSugerenciasSectorEditar = false;
     }
   }
 
-  async seleccionarMunicipioEditar(prediction: any): Promise<void> {
+  async seleccionarSectorEditar(prediction: any): Promise<void> {
     if (!this.coordinadorEditando) return;
-    this.coordinadorEditando.municipio = this.googleMapsService.extractMunicipalityName(prediction);
-    this.municipioSugerenciasEditar = [];
-    this.mostrandoSugerenciasMunicipioEditar = false;
-    
+    this.coordinadorEditando.sector = this.googleMapsService.extractMunicipalityName(prediction);
+    this.sectorSugerenciasEditar = [];
+    this.mostrandoSugerenciasSectorEditar = false;
+
     // Obtener coordenadas del lugar seleccionado
     if (prediction.place_id) {
       try {
@@ -623,8 +687,8 @@ export class CoordinadoresComponent implements OnInit {
   guardarEdicion(): void {
     if (!this.coordinadorEditando) return;
 
-    if (!this.coordinadorEditando.ciudad.trim() && !this.coordinadorEditando.municipio.trim()) {
-      this.toastService.warning('Debe ingresar al menos una ciudad o un municipio');
+    if (!this.coordinadorEditando.municipio.trim() && !this.coordinadorEditando.sector.trim()) {
+      this.toastService.warning('Debe ingresar al menos un municipio o un sector');
       return;
     }
     if (!this.coordinadorEditando.nombreCompleto.trim()) {
@@ -645,6 +709,65 @@ export class CoordinadoresComponent implements OnInit {
       error: (error) => {
         this.toastService.error('Error al actualizar defensor');
         console.error('Error:', error);
+      }
+    });
+  }
+
+  // Gestión de Eventos del Coordinador
+  abrirModalEventos(coordinador: Coordinador): void {
+    this.coordinadorSeleccionadoEventos = coordinador;
+    this.mostrarModalEventos = true;
+  }
+
+  cerrarModalEventos(): void {
+    this.mostrarModalEventos = false;
+    this.coordinadorSeleccionadoEventos = null;
+  }
+
+  estaAsignadoAEvento(eventoId: number): boolean {
+    if (!this.coordinadorSeleccionadoEventos || !this.coordinadorSeleccionadoEventos.eventos) return false;
+    return this.coordinadorSeleccionadoEventos.eventos.some(e => e.id === eventoId);
+  }
+
+  toggleAsignacionEvento(evento: Evento): void {
+    if (!this.coordinadorSeleccionadoEventos || !evento.id) return;
+
+    const estaAsignado = this.estaAsignadoAEvento(evento.id);
+    const coordinadorId = this.coordinadorSeleccionadoEventos.id!;
+
+    if (estaAsignado) {
+      this.coordinadorService.desasignarEvento(coordinadorId, evento.id).subscribe({
+        next: () => {
+          this.toastService.success(`Desasignado del evento ${evento.nombre}`);
+          this.actualizarCoordinadorLocal(coordinadorId);
+        },
+        error: (error) => {
+          this.toastService.error('Error al desasignar evento');
+          console.error(error);
+        }
+      });
+    } else {
+      this.coordinadorService.asignarEvento(coordinadorId, evento.id).subscribe({
+        next: () => {
+          this.toastService.success(`Asignado al evento ${evento.nombre}`);
+          this.actualizarCoordinadorLocal(coordinadorId);
+        },
+        error: (error) => {
+          this.toastService.error('Error al asignar evento');
+          console.error(error);
+        }
+      });
+    }
+  }
+
+  actualizarCoordinadorLocal(coordinadorId: number): void {
+    this.coordinadorService.obtenerPorId(coordinadorId).subscribe(updatedCoord => {
+      if (this.coordinadorSeleccionadoEventos && this.coordinadorSeleccionadoEventos.id === coordinadorId) {
+        this.coordinadorSeleccionadoEventos = updatedCoord;
+      }
+      const index = this.coordinadores.findIndex(c => c.id === coordinadorId);
+      if (index !== -1) {
+        this.coordinadores[index] = updatedCoord;
       }
     });
   }

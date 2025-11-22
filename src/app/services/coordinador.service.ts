@@ -42,9 +42,10 @@ export class CoordinadorService {
 
 
   // Métodos para gestionar llamadas
-  registrarLlamada(coordinadorId: number, observaciones: string): Observable<Llamada> {
+  registrarLlamada(coordinadorId: number, observaciones: string, eventoId?: number): Observable<Llamada> {
     return this.http.post<Llamada>(`${environment.apiUrl}/llamadas/coordinador/${coordinadorId}`, {
-      observaciones
+      observaciones,
+      eventoId
     });
   }
 
@@ -54,5 +55,18 @@ export class CoordinadorService {
 
   eliminarLlamada(llamadaId: number): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/llamadas/${llamadaId}`);
+  }
+
+  // Métodos para gestionar eventos
+  asignarEvento(coordinadorId: number, eventoId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${coordinadorId}/eventos/${eventoId}`, {});
+  }
+
+  desasignarEvento(coordinadorId: number, eventoId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${coordinadorId}/eventos/${eventoId}`);
+  }
+
+  obtenerPorEventoEnLlamadas(eventoId: number): Observable<Coordinador[]> {
+    return this.http.get<Coordinador[]>(`${this.apiUrl}/por-evento-llamadas/${eventoId}`);
   }
 }

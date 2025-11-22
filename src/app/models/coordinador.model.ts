@@ -1,7 +1,9 @@
+import { Evento } from './evento.model';
+
 export interface Coordinador {
   id?: number;
-  ciudad: string;
   municipio: string;
+  sector: string;
   nombreCompleto: string;
   celular: string;
   email?: string;
@@ -13,6 +15,7 @@ export interface Coordinador {
   longitud?: number;
   llamadas?: Llamada[];
   numeroLlamadas?: number;
+  eventos?: Evento[];
 }
 
 export interface Llamada {
@@ -20,6 +23,7 @@ export interface Llamada {
   fecha: Date;
   observaciones?: string;
   coordinadorId?: number;
+  evento?: Evento;
 }
 
 export interface Estadisticas {

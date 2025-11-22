@@ -1,9 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CoordinadorService } from '../services/coordinador.service';
+import { EventoService } from '../services/evento.service';
 import { ToastService } from '../services/toast.service';
 import { Coordinador } from '../models/coordinador.model';
+import { Evento } from '../models/evento.model';
 
 // Declaración de tipos para Google Maps
 declare global {
@@ -24,7 +27,7 @@ interface MarkerData {
 @Component({
   selector: 'app-mapa-calor',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './mapa-calor.component.html',
   styleUrl: './mapa-calor.component.css'
 })
@@ -37,37 +40,47 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
   ubicacionesUnicas: Map<string, { count: number; lat: number; lng: number }> = new Map();
   geocoder: any;
   mostrarCirculos: boolean = true;
+  eventos: Evento[] = [];
+  eventoSeleccionadoId: number | null = null;
+  todosLosCoordinadores: Coordinador[] = [];
 
   constructor(
     private coordinadorService: CoordinadorService,
+    private eventoService: EventoService,
     private toastService: ToastService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
-    // Verificación de permisos - funcionalidad deshabilitada
-    this.toastService.error('❌ No tiene permisos para ver el mapa de calor');
-    setTimeout(() => {
-      this.router.navigate(['/coordinadores']);
-    }, 2000);
-    return;
+    // Cargar eventos primero
+    this.cargarEventos();
     
-    // Lógica original mantenida (no se ejecuta)
     // Esperar a que Google Maps esté cargado
     this.waitForGoogleMaps().then(() => {
       this.cargarCoordinadores();
     });
   }
 
+  cargarEventos(): void {
+    this.eventoService.obtenerTodos().subscribe({
+      next: (data) => {
+        this.eventos = data;
+      },
+      error: (error) => {
+        console.error('Error al cargar eventos:', error);
+      }
+    });
+  }
+
   waitForGoogleMaps(): Promise<void> {
     return new Promise((resolve) => {
       const checkIfLoaded = () => {
-        if (typeof window !== 'undefined' && 
-            window.google && 
-            window.google.maps && 
-            window.google.maps.Geocoder && 
-            window.google.maps.marker &&
-            window.google.maps.marker.AdvancedMarkerElement) {
+        if (typeof window !== 'undefined' &&
+          window.google &&
+          window.google.maps &&
+          window.google.maps.Geocoder &&
+          window.google.maps.marker &&
+          window.google.maps.marker.AdvancedMarkerElement) {
           resolve();
         } else {
           setTimeout(checkIfLoaded, 100);
@@ -94,9 +107,8 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     this.cargando = true;
     this.coordinadorService.obtenerTodos().subscribe({
       next: (data) => {
-        this.coordinadores = data;
-        this.totalDefensores = data.length;
-        this.procesarUbicaciones();
+        this.todosLosCoordinadores = data;
+        this.aplicarFiltros();
       },
       error: (error) => {
         this.toastService.error('Error al cargar defensores');
@@ -108,33 +120,33 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
 
   procesarUbicaciones(): void {
     // Agrupar coordinadores por ubicación
-    const ubicacionesAgrupadas = new Map<string, { 
-      coordinadoresConCoords: Coordinador[]; 
+    const ubicacionesAgrupadas = new Map<string, {
+      coordinadoresConCoords: Coordinador[];
       coordinadoresSinCoords: Coordinador[];
     }>();
-    
+
     this.coordinadores.forEach(coord => {
-      // Usar ciudad si está disponible, si no usar municipio, si no usar "Sin ubicación"
+      // Usar municipio si está disponible, si no usar sector, si no usar "Sin ubicación"
       let clave = '';
-      if (coord.ciudad && coord.ciudad.trim()) {
-        clave = coord.ciudad;
-      } else if (coord.municipio && coord.municipio.trim()) {
+      if (coord.municipio && coord.municipio.trim()) {
         clave = coord.municipio;
+      } else if (coord.sector && coord.sector.trim()) {
+        clave = coord.sector;
       } else {
         clave = 'Sin ubicación';
       }
-      
-      const existing = ubicacionesAgrupadas.get(clave) || { 
-        coordinadoresConCoords: [], 
-        coordinadoresSinCoords: [] 
+
+      const existing = ubicacionesAgrupadas.get(clave) || {
+        coordinadoresConCoords: [],
+        coordinadoresSinCoords: []
       };
-      
+
       if (coord.latitud && coord.longitud) {
         existing.coordinadoresConCoords.push(coord);
       } else {
         existing.coordinadoresSinCoords.push(coord);
       }
-      
+
       ubicacionesAgrupadas.set(clave, existing);
     });
 
@@ -150,7 +162,7 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
 
     ubicacionesArray.forEach(([ubicacion, data]) => {
       const totalCount = data.coordinadoresConCoords.length + data.coordinadoresSinCoords.length;
-      
+
       // Si hay coordinadores con coordenadas, usar el promedio de sus coordenadas
       if (data.coordinadoresConCoords.length > 0) {
         let sumLat = 0;
@@ -161,13 +173,13 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
         });
         const avgLat = sumLat / data.coordinadoresConCoords.length;
         const avgLng = sumLng / data.coordinadoresConCoords.length;
-        
+
         this.ubicacionesUnicas.set(ubicacion, {
           count: totalCount,
           lat: avgLat,
           lng: avgLng
         });
-        
+
         procesadas++;
         if (procesadas === ubicacionesArray.length) {
           this.inicializarMapa();
@@ -190,9 +202,9 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       callback();
       return;
     }
-    
+
     const direccion = `${ubicacion}, Colombia`;
-    
+
     this.geocoder.geocode({ address: direccion }, (results: any, status: any) => {
       if (status === window.google.maps.GeocoderStatus.OK && results && results[0]) {
         const location = results[0].geometry.location;
@@ -251,12 +263,12 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     // Agregar marcadores avanzados con círculos de calor
     this.ubicacionesUnicas.forEach((data, ubicacion) => {
       const position = { lat: data.lat, lng: data.lng };
-      
+
       // Calcular tamaño y color basado en el número de defensores
       const normalizedCount = data.count / maxCount;
       const radius = Math.max(5000, Math.min(50000, data.count * 3000)); // Radio en metros
       const opacity = Math.max(0.2, Math.min(0.6, normalizedCount));
-      
+
       // Determinar color basado en la densidad
       let fillColor = '#3b82f6'; // Azul para pocos
       if (normalizedCount > 0.7) {
@@ -347,6 +359,50 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
   cambiarRadio(): void {
     // Función deshabilitada - el radio se calcula automáticamente
     this.toastService.info('El tamaño de los círculos se ajusta automáticamente según el número de defensores');
+  }
+
+  filtrarPorEvento(): void {
+    this.aplicarFiltros();
+  }
+
+  aplicarFiltros(): void {
+    if (this.eventoSeleccionadoId) {
+      // Cargar coordinadores que tienen llamadas asociadas al evento seleccionado
+      this.cargando = true;
+      this.coordinadorService.obtenerPorEventoEnLlamadas(this.eventoSeleccionadoId).subscribe({
+        next: (data) => {
+          // Eliminar duplicados (en caso de que un coordinador tenga múltiples llamadas al mismo evento)
+          const coordinadoresUnicos = Array.from(
+            new Map(data.map(c => [c.id, c])).values()
+          );
+          this.coordinadores = coordinadoresUnicos;
+          this.totalDefensores = this.coordinadores.length;
+          this.limpiarMapa();
+          this.procesarUbicaciones();
+        },
+        error: (error) => {
+          this.toastService.error('Error al filtrar por evento');
+          console.error('Error:', error);
+          this.cargando = false;
+        }
+      });
+    } else {
+      // Sin filtro, mostrar todos los coordinadores
+      this.coordinadores = [...this.todosLosCoordinadores];
+      this.totalDefensores = this.coordinadores.length;
+      this.limpiarMapa();
+      this.procesarUbicaciones();
+    }
+  }
+
+  limpiarMapa(): void {
+    // Limpiar mapa anterior
+    this.markers.forEach(marker => {
+      if (marker.marker) marker.marker.map = null;
+      if (marker.circle) marker.circle.setMap(null);
+    });
+    this.markers = [];
+    this.ubicacionesUnicas.clear();
   }
 }
 
