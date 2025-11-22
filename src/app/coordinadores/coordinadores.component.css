@@ -488,8 +488,9 @@ table {
 }
 
 thead {
-  background: linear-gradient(135deg, #003893, #001F5C);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 th {
@@ -499,6 +500,8 @@ th {
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 td {
@@ -1652,6 +1655,16 @@ tbody tr:hover {
   font-style: italic;
   margin-top: 5px;
   margin-bottom: 0;
+}
+
+.required {
+  color: #ef4444;
+  font-weight: bold;
+}
+
+.form-control.invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .form-control:disabled {

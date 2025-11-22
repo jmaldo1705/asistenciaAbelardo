@@ -174,9 +174,10 @@
     </div>
     <div class="modal-body">
       <div class="form-group autocomplete-container">
-        <label>Municipio 🌍</label>
+        <label>Municipio 🌍 <span class="required">*</span></label>
         <input type="text" [(ngModel)]="nuevoCoordinador.municipio" (input)="buscarMunicipios($event)" class="form-control"
-          placeholder="Escribe para buscar municipio o ciudad (opcional)..." autocomplete="off">
+          [class.invalid]="!municipioSeleccionadoDeLista && nuevoCoordinador.municipio.trim()"
+          placeholder="Escribe para buscar municipio o ciudad (obligatorio - seleccione de la lista)..." autocomplete="off">
         <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipio">
           <div class="suggestion-item" *ngFor="let sugerencia of municipioSugerencias"
             (click)="seleccionarMunicipio(sugerencia)">
@@ -184,12 +185,18 @@
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
         </div>
+        <small class="form-hint" *ngIf="!municipioSeleccionadoDeLista && nuevoCoordinador.municipio.trim()">
+          ⚠️ Debe seleccionar el municipio de la lista de sugerencias
+        </small>
       </div>
 
       <div class="form-group autocomplete-container">
         <label>Sector 🏘️</label>
         <input type="text" [(ngModel)]="nuevoCoordinador.sector" (input)="buscarSectores($event)"
-          class="form-control" placeholder="Escribe para buscar sector, vereda o corregimiento (opcional)..." autocomplete="off">
+          class="form-control" 
+          [disabled]="!nuevoCoordinador.municipio || !nuevoCoordinador.municipio.trim()"
+          placeholder="{{ nuevoCoordinador.municipio ? 'Escribe para buscar sector, vereda o corregimiento (opcional)...' : 'Primero seleccione un municipio' }}" 
+          autocomplete="off">
         <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasSector">
           <div class="suggestion-item" *ngFor="let sugerencia of sectorSugerencias"
             (click)="seleccionarSector(sugerencia)">
@@ -197,6 +204,9 @@
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
         </div>
+        <small class="form-hint" *ngIf="!nuevoCoordinador.municipio || !nuevoCoordinador.municipio.trim()">
+          ⚠️ Debe seleccionar un municipio primero para buscar sectores
+        </small>
       </div>
 
       <div class="form-group">
@@ -271,9 +281,11 @@
     </div>
     <div class="modal-body" *ngIf="coordinadorEditando">
       <div class="form-group autocomplete-container">
-        <label>Municipio 🌍</label>
+        <label>Municipio 🌍 <span class="required">*</span></label>
         <input type="text" [(ngModel)]="coordinadorEditando.municipio" (input)="buscarMunicipiosEditar($event)"
-          class="form-control" placeholder="Escribe para buscar municipio o ciudad (opcional)..." autocomplete="off">
+          class="form-control" 
+          [class.invalid]="!municipioSeleccionadoDeListaEditar && coordinadorEditando.municipio.trim()"
+          placeholder="Escribe para buscar municipio o ciudad (obligatorio - seleccione de la lista)..." autocomplete="off">
         <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasMunicipioEditar">
           <div class="suggestion-item" *ngFor="let sugerencia of municipioSugerenciasEditar"
             (click)="seleccionarMunicipioEditar(sugerencia)">
@@ -281,12 +293,18 @@
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
         </div>
+        <small class="form-hint" *ngIf="!municipioSeleccionadoDeListaEditar && coordinadorEditando.municipio.trim()">
+          ⚠️ Debe seleccionar el municipio de la lista de sugerencias
+        </small>
       </div>
 
       <div class="form-group autocomplete-container">
         <label>Sector 🏘️</label>
         <input type="text" [(ngModel)]="coordinadorEditando.sector" (input)="buscarSectoresEditar($event)"
-          class="form-control" placeholder="Escribe para buscar sector, vereda o corregimiento (opcional)..." autocomplete="off">
+          class="form-control" 
+          [disabled]="!coordinadorEditando.municipio || !coordinadorEditando.municipio.trim()"
+          placeholder="{{ coordinadorEditando.municipio ? 'Escribe para buscar sector, vereda o corregimiento (opcional)...' : 'Primero seleccione un municipio' }}" 
+          autocomplete="off">
         <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasSectorEditar">
           <div class="suggestion-item" *ngFor="let sugerencia of sectorSugerenciasEditar"
             (click)="seleccionarSectorEditar(sugerencia)">
@@ -294,6 +312,9 @@
             <span class="suggestion-text">{{ sugerencia.description }}</span>
           </div>
         </div>
+        <small class="form-hint" *ngIf="!coordinadorEditando.municipio || !coordinadorEditando.municipio.trim()">
+          ⚠️ Debe seleccionar un municipio primero para buscar sectores
+        </small>
       </div>
 
       <div class="form-group">

@@ -126,14 +126,30 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     }>();
 
     this.coordinadores.forEach(coord => {
-      // Usar municipio si está disponible, si no usar sector, si no usar "Sin ubicación"
+      // Priorizar sector con coordenadas para el mapa de calor
+      // Si hay sector, usarlo; si no, usar municipio como fallback
       let clave = '';
-      if (coord.municipio && coord.municipio.trim()) {
-        clave = coord.municipio;
+      let usarCoordenadas = false;
+      
+      if (coord.sector && coord.sector.trim() && coord.latitud && coord.longitud) {
+        // Usar sector si tiene coordenadas (preferido para el mapa)
+        clave = `${coord.sector}${coord.municipio ? `, ${coord.municipio}` : ''}`;
+        usarCoordenadas = true;
       } else if (coord.sector && coord.sector.trim()) {
-        clave = coord.sector;
+        // Sector sin coordenadas, intentar geocodificar
+        clave = `${coord.sector}${coord.municipio ? `, ${coord.municipio}` : ''}`;
+        usarCoordenadas = false;
+      } else if (coord.municipio && coord.municipio.trim() && coord.latitud && coord.longitud) {
+        // Municipio con coordenadas como fallback
+        clave = coord.municipio;
+        usarCoordenadas = true;
+      } else if (coord.municipio && coord.municipio.trim()) {
+        // Municipio sin coordenadas
+        clave = coord.municipio;
+        usarCoordenadas = false;
       } else {
         clave = 'Sin ubicación';
+        usarCoordenadas = false;
       }
 
       const existing = ubicacionesAgrupadas.get(clave) || {
@@ -141,7 +157,7 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
         coordinadoresSinCoords: []
       };
 
-      if (coord.latitud && coord.longitud) {
+      if (usarCoordenadas) {
         existing.coordinadoresConCoords.push(coord);
       } else {
         existing.coordinadoresSinCoords.push(coord);
@@ -203,7 +219,11 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const direccion = `${ubicacion}, Colombia`;
+    // Si la ubicación ya incluye el municipio (formato "Sector, Municipio"), usar directamente
+    // Si no, agregar "Colombia" para mejorar la precisión
+    const direccion = ubicacion.includes(',') 
+      ? `${ubicacion}, Colombia` 
+      : `${ubicacion}, Colombia`;
 
     this.geocoder.geocode({ address: direccion }, (results: any, status: any) => {
       if (status === window.google.maps.GeocoderStatus.OK && results && results[0]) {

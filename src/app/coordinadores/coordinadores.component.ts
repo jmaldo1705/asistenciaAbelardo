@@ -50,12 +50,18 @@ export class CoordinadoresComponent implements OnInit {
   sectorSugerencias: any[] = [];
   mostrandoSugerenciasMunicipio: boolean = false;
   mostrandoSugerenciasSector: boolean = false;
+  municipioSeleccionadoDeLista: boolean = false;
+  municipioLatitud: number | undefined;
+  municipioLongitud: number | undefined;
 
   // Autocomplete Google Maps - Editar defensor
   municipioSugerenciasEditar: any[] = [];
   sectorSugerenciasEditar: any[] = [];
   mostrandoSugerenciasMunicipioEditar: boolean = false;
   mostrandoSugerenciasSectorEditar: boolean = false;
+  municipioSeleccionadoDeListaEditar: boolean = false;
+  municipioLatitudEditar: number | undefined;
+  municipioLongitudEditar: number | undefined;
 
   // Modal de historial de llamadas
   mostrarModalHistorial: boolean = false;
@@ -307,6 +313,9 @@ export class CoordinadoresComponent implements OnInit {
     this.sectorSugerencias = [];
     this.mostrandoSugerenciasMunicipio = false;
     this.mostrandoSugerenciasSector = false;
+    this.municipioSeleccionadoDeLista = false;
+    this.municipioLatitud = undefined;
+    this.municipioLongitud = undefined;
     this.mostrarModalNuevo = true;
   }
 
@@ -318,9 +327,17 @@ export class CoordinadoresComponent implements OnInit {
 
   async buscarMunicipios(event: any): Promise<void> {
     const input = event.target.value;
+    
+    // Si el usuario está escribiendo y no hay coincidencias, marcar como no seleccionado de lista
     if (input.length < 2) {
       this.municipioSugerencias = [];
       this.mostrandoSugerenciasMunicipio = false;
+      // Si el usuario borra o modifica el texto, invalidar la selección solo si no coincide con el municipio guardado
+      if (this.municipioSeleccionadoDeLista && input !== this.nuevoCoordinador.municipio) {
+        this.municipioSeleccionadoDeLista = false;
+        this.municipioLatitud = undefined;
+        this.municipioLongitud = undefined;
+      }
       return;
     }
 
@@ -328,6 +345,13 @@ export class CoordinadoresComponent implements OnInit {
       const predictions = await this.googleMapsService.getCitySuggestions(input, 'CO');
       this.municipioSugerencias = predictions;
       this.mostrandoSugerenciasMunicipio = predictions.length > 0;
+      
+      // Si el usuario está escribiendo y no coincide con la selección anterior, invalidar
+      if (this.municipioSeleccionadoDeLista && input !== this.nuevoCoordinador.municipio) {
+        this.municipioSeleccionadoDeLista = false;
+        this.municipioLatitud = undefined;
+        this.municipioLongitud = undefined;
+      }
     } catch (error) {
       console.error('Error al buscar municipios:', error);
       this.municipioSugerencias = [];
@@ -336,26 +360,56 @@ export class CoordinadoresComponent implements OnInit {
   }
 
   async seleccionarMunicipio(prediction: any): Promise<void> {
-    this.nuevoCoordinador.municipio = this.googleMapsService.extractCityName(prediction);
+    // Extraer solo el nombre del municipio/ciudad (sin el país ni otros detalles)
+    const nombreMunicipio = this.googleMapsService.extractCityName(prediction);
+    this.nuevoCoordinador.municipio = nombreMunicipio;
     this.municipioSugerencias = [];
     this.mostrandoSugerenciasMunicipio = false;
+    
+    // Marcar como seleccionado de lista inmediatamente al hacer clic
+    this.municipioSeleccionadoDeLista = true;
 
-    // Obtener coordenadas del lugar seleccionado
+    // Obtener coordenadas del lugar seleccionado (obligatorio para municipio)
     if (prediction.place_id) {
       try {
         const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
         if (coords) {
-          this.nuevoCoordinador.latitud = coords.lat;
-          this.nuevoCoordinador.longitud = coords.lng;
+          // Guardar coordenadas del municipio
+          this.municipioLatitud = coords.lat;
+          this.municipioLongitud = coords.lng;
+          // Si no hay sector o el sector no tiene coordenadas, usar las del municipio
+          if (!this.nuevoCoordinador.sector || !this.nuevoCoordinador.sector.trim() || 
+              !this.nuevoCoordinador.latitud || !this.nuevoCoordinador.longitud) {
+            this.nuevoCoordinador.latitud = coords.lat;
+            this.nuevoCoordinador.longitud = coords.lng;
+          }
+        } else {
+          // Si no se obtienen coordenadas, mantener la selección pero mostrar advertencia
+          this.toastService.warning('No se pudieron obtener las coordenadas del municipio. Por favor, intente nuevamente.');
+          this.municipioSeleccionadoDeLista = false;
         }
       } catch (error) {
         console.error('Error al obtener coordenadas:', error);
+        this.toastService.error('Error al obtener coordenadas del municipio');
+        this.municipioSeleccionadoDeLista = false;
       }
+    } else {
+      this.toastService.warning('No se pudieron obtener las coordenadas del municipio');
+      this.municipioSeleccionadoDeLista = false;
     }
   }
 
   async buscarSectores(event: any): Promise<void> {
     const input = event.target.value;
+    
+    // Requerir que haya un municipio seleccionado antes de buscar sectores
+    if (!this.nuevoCoordinador.municipio || !this.nuevoCoordinador.municipio.trim()) {
+      this.toastService.warning('Primero debe seleccionar un municipio');
+      this.sectorSugerencias = [];
+      this.mostrandoSugerenciasSector = false;
+      return;
+    }
+
     if (input.length < 2) {
       this.sectorSugerencias = [];
       this.mostrandoSugerenciasSector = false;
@@ -363,7 +417,11 @@ export class CoordinadoresComponent implements OnInit {
     }
 
     try {
-      const predictions = await this.googleMapsService.getMunicipalitySuggestions(input, 'CO');
+      const predictions = await this.googleMapsService.getMunicipalitySuggestions(
+        input, 
+        'CO', 
+        this.nuevoCoordinador.municipio
+      );
       this.sectorSugerencias = predictions;
       this.mostrandoSugerenciasSector = predictions.length > 0;
     } catch (error) {
@@ -383,20 +441,71 @@ export class CoordinadoresComponent implements OnInit {
       try {
         const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
         if (coords) {
+          // Si se obtienen coordenadas del sector, usarlas
           this.nuevoCoordinador.latitud = coords.lat;
           this.nuevoCoordinador.longitud = coords.lng;
+        } else {
+          // Si no se pueden obtener coordenadas del sector, usar las del municipio
+          if (this.municipioLatitud && this.municipioLongitud) {
+            this.nuevoCoordinador.latitud = this.municipioLatitud;
+            this.nuevoCoordinador.longitud = this.municipioLongitud;
+            this.toastService.info('No se pudieron obtener las coordenadas del sector. Se usarán las coordenadas del municipio.');
+          } else {
+            this.toastService.warning('No se pudieron obtener las coordenadas del sector. Por favor, intente nuevamente.');
+          }
         }
       } catch (error) {
         console.error('Error al obtener coordenadas:', error);
+        // Si hay error, usar coordenadas del municipio si están disponibles
+        if (this.municipioLatitud && this.municipioLongitud) {
+          this.nuevoCoordinador.latitud = this.municipioLatitud;
+          this.nuevoCoordinador.longitud = this.municipioLongitud;
+          this.toastService.info('Error al obtener coordenadas del sector. Se usarán las coordenadas del municipio.');
+        } else {
+          this.toastService.error('Error al obtener coordenadas del sector');
+        }
+      }
+    } else {
+      // Si no hay place_id, usar coordenadas del municipio
+      if (this.municipioLatitud && this.municipioLongitud) {
+        this.nuevoCoordinador.latitud = this.municipioLatitud;
+        this.nuevoCoordinador.longitud = this.municipioLongitud;
+        this.toastService.info('No se pudieron obtener las coordenadas del sector. Se usarán las coordenadas del municipio.');
+      } else {
+        this.toastService.warning('No se pudieron obtener las coordenadas del sector');
       }
     }
   }
 
   guardarNuevoCoordinador(): void {
     // Validaciones
-    if (!this.nuevoCoordinador.municipio.trim() && !this.nuevoCoordinador.sector.trim()) {
-      this.toastService.warning('Debe ingresar al menos un municipio o un sector');
+    // Municipio es obligatorio y debe ser seleccionado de la lista
+    if (!this.nuevoCoordinador.municipio.trim()) {
+      this.toastService.warning('El municipio es obligatorio');
       return;
+    }
+    
+    if (!this.municipioSeleccionadoDeLista) {
+      this.toastService.warning('Debe seleccionar el municipio de la lista de sugerencias');
+      return;
+    }
+    
+    // Si no hay coordenadas del municipio, no se puede guardar
+    if (!this.municipioLatitud || !this.municipioLongitud) {
+      this.toastService.warning('No se pudieron obtener las coordenadas del municipio. Por favor, seleccione el municipio nuevamente.');
+      return;
+    }
+    
+    // Si hay sector pero no tiene coordenadas, usar las del municipio
+    if (this.nuevoCoordinador.sector.trim() && (!this.nuevoCoordinador.latitud || !this.nuevoCoordinador.longitud)) {
+      this.nuevoCoordinador.latitud = this.municipioLatitud;
+      this.nuevoCoordinador.longitud = this.municipioLongitud;
+    }
+    
+    // Asegurar que siempre haya coordenadas (del municipio al menos)
+    if (!this.nuevoCoordinador.latitud || !this.nuevoCoordinador.longitud) {
+      this.nuevoCoordinador.latitud = this.municipioLatitud;
+      this.nuevoCoordinador.longitud = this.municipioLongitud;
     }
     if (!this.nuevoCoordinador.nombreCompleto.trim()) {
       this.toastService.warning('El nombre completo es obligatorio');
@@ -594,6 +703,10 @@ export class CoordinadoresComponent implements OnInit {
     this.sectorSugerenciasEditar = [];
     this.mostrandoSugerenciasMunicipioEditar = false;
     this.mostrandoSugerenciasSectorEditar = false;
+    // Si el coordinador ya tiene coordenadas, asumir que el municipio fue seleccionado correctamente
+    this.municipioSeleccionadoDeListaEditar = !!(coordinador.latitud && coordinador.longitud);
+    this.municipioLatitudEditar = coordinador.latitud;
+    this.municipioLongitudEditar = coordinador.longitud;
     this.mostrarModalEditar = true;
   }
 
@@ -602,14 +715,25 @@ export class CoordinadoresComponent implements OnInit {
     this.coordinadorEditando = null;
     this.municipioSugerenciasEditar = [];
     this.sectorSugerenciasEditar = [];
+    this.municipioSeleccionadoDeListaEditar = false;
+    this.municipioLatitudEditar = undefined;
+    this.municipioLongitudEditar = undefined;
   }
 
   async buscarMunicipiosEditar(event: any): Promise<void> {
     if (!this.coordinadorEditando) return;
     const input = event.target.value;
+    
+    // Si el usuario está escribiendo y no hay coincidencias, marcar como no seleccionado de lista
     if (input.length < 2) {
       this.municipioSugerenciasEditar = [];
       this.mostrandoSugerenciasMunicipioEditar = false;
+      // Si el usuario borra o modifica el texto, invalidar la selección solo si no coincide con el municipio guardado
+      if (this.municipioSeleccionadoDeListaEditar && input !== this.coordinadorEditando.municipio) {
+        this.municipioSeleccionadoDeListaEditar = false;
+        this.municipioLatitudEditar = undefined;
+        this.municipioLongitudEditar = undefined;
+      }
       return;
     }
 
@@ -617,6 +741,13 @@ export class CoordinadoresComponent implements OnInit {
       const predictions = await this.googleMapsService.getCitySuggestions(input, 'CO');
       this.municipioSugerenciasEditar = predictions;
       this.mostrandoSugerenciasMunicipioEditar = predictions.length > 0;
+      
+      // Si el usuario está escribiendo y no coincide con la selección anterior, invalidar
+      if (this.municipioSeleccionadoDeListaEditar && input !== this.coordinadorEditando.municipio) {
+        this.municipioSeleccionadoDeListaEditar = false;
+        this.municipioLatitudEditar = undefined;
+        this.municipioLongitudEditar = undefined;
+      }
     } catch (error) {
       console.error('Error al buscar municipios:', error);
       this.municipioSugerenciasEditar = [];
@@ -626,26 +757,57 @@ export class CoordinadoresComponent implements OnInit {
 
   async seleccionarMunicipioEditar(prediction: any): Promise<void> {
     if (!this.coordinadorEditando) return;
-    this.coordinadorEditando.municipio = this.googleMapsService.extractCityName(prediction);
+    
+    // Extraer solo el nombre del municipio/ciudad (sin el país ni otros detalles)
+    const nombreMunicipio = this.googleMapsService.extractCityName(prediction);
+    this.coordinadorEditando.municipio = nombreMunicipio;
     this.municipioSugerenciasEditar = [];
     this.mostrandoSugerenciasMunicipioEditar = false;
+    
+    // Marcar como seleccionado de lista inmediatamente al hacer clic
+    this.municipioSeleccionadoDeListaEditar = true;
 
-    // Obtener coordenadas del lugar seleccionado
+    // Obtener coordenadas del lugar seleccionado (obligatorio para municipio)
     if (prediction.place_id) {
       try {
         const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
         if (coords) {
-          this.coordinadorEditando.latitud = coords.lat;
-          this.coordinadorEditando.longitud = coords.lng;
+          // Guardar coordenadas del municipio
+          this.municipioLatitudEditar = coords.lat;
+          this.municipioLongitudEditar = coords.lng;
+          // Si no hay sector o el sector no tiene coordenadas, usar las del municipio
+          if (!this.coordinadorEditando.sector || !this.coordinadorEditando.sector.trim() || 
+              !this.coordinadorEditando.latitud || !this.coordinadorEditando.longitud) {
+            this.coordinadorEditando.latitud = coords.lat;
+            this.coordinadorEditando.longitud = coords.lng;
+          }
+        } else {
+          // Si no se obtienen coordenadas, mantener la selección pero mostrar advertencia
+          this.toastService.warning('No se pudieron obtener las coordenadas del municipio. Por favor, intente nuevamente.');
+          this.municipioSeleccionadoDeListaEditar = false;
         }
       } catch (error) {
         console.error('Error al obtener coordenadas:', error);
+        this.toastService.error('Error al obtener coordenadas del municipio');
+        this.municipioSeleccionadoDeListaEditar = false;
       }
+    } else {
+      this.toastService.warning('No se pudieron obtener las coordenadas del municipio');
+      this.municipioSeleccionadoDeListaEditar = false;
     }
   }
 
   async buscarSectoresEditar(event: any): Promise<void> {
     if (!this.coordinadorEditando) return;
+    
+    // Requerir que haya un municipio seleccionado antes de buscar sectores
+    if (!this.coordinadorEditando.municipio || !this.coordinadorEditando.municipio.trim()) {
+      this.toastService.warning('Primero debe seleccionar un municipio');
+      this.sectorSugerenciasEditar = [];
+      this.mostrandoSugerenciasSectorEditar = false;
+      return;
+    }
+
     const input = event.target.value;
     if (input.length < 2) {
       this.sectorSugerenciasEditar = [];
@@ -654,7 +816,11 @@ export class CoordinadoresComponent implements OnInit {
     }
 
     try {
-      const predictions = await this.googleMapsService.getMunicipalitySuggestions(input, 'CO');
+      const predictions = await this.googleMapsService.getMunicipalitySuggestions(
+        input, 
+        'CO', 
+        this.coordinadorEditando.municipio
+      );
       this.sectorSugerenciasEditar = predictions;
       this.mostrandoSugerenciasSectorEditar = predictions.length > 0;
     } catch (error) {
@@ -675,11 +841,38 @@ export class CoordinadoresComponent implements OnInit {
       try {
         const coords = await this.googleMapsService.getPlaceCoordinates(prediction.place_id);
         if (coords) {
+          // Si se obtienen coordenadas del sector, usarlas
           this.coordinadorEditando.latitud = coords.lat;
           this.coordinadorEditando.longitud = coords.lng;
+        } else {
+          // Si no se pueden obtener coordenadas del sector, usar las del municipio
+          if (this.municipioLatitudEditar && this.municipioLongitudEditar) {
+            this.coordinadorEditando.latitud = this.municipioLatitudEditar;
+            this.coordinadorEditando.longitud = this.municipioLongitudEditar;
+            this.toastService.info('No se pudieron obtener las coordenadas del sector. Se usarán las coordenadas del municipio.');
+          } else {
+            this.toastService.warning('No se pudieron obtener las coordenadas del sector. Por favor, intente nuevamente.');
+          }
         }
       } catch (error) {
         console.error('Error al obtener coordenadas:', error);
+        // Si hay error, usar coordenadas del municipio si están disponibles
+        if (this.municipioLatitudEditar && this.municipioLongitudEditar) {
+          this.coordinadorEditando.latitud = this.municipioLatitudEditar;
+          this.coordinadorEditando.longitud = this.municipioLongitudEditar;
+          this.toastService.info('Error al obtener coordenadas del sector. Se usarán las coordenadas del municipio.');
+        } else {
+          this.toastService.error('Error al obtener coordenadas del sector');
+        }
+      }
+    } else {
+      // Si no hay place_id, usar coordenadas del municipio
+      if (this.municipioLatitudEditar && this.municipioLongitudEditar) {
+        this.coordinadorEditando.latitud = this.municipioLatitudEditar;
+        this.coordinadorEditando.longitud = this.municipioLongitudEditar;
+        this.toastService.info('No se pudieron obtener las coordenadas del sector. Se usarán las coordenadas del municipio.');
+      } else {
+        this.toastService.warning('No se pudieron obtener las coordenadas del sector');
       }
     }
   }
@@ -687,9 +880,34 @@ export class CoordinadoresComponent implements OnInit {
   guardarEdicion(): void {
     if (!this.coordinadorEditando) return;
 
-    if (!this.coordinadorEditando.municipio.trim() && !this.coordinadorEditando.sector.trim()) {
-      this.toastService.warning('Debe ingresar al menos un municipio o un sector');
+    // Validaciones
+    // Municipio es obligatorio y debe ser seleccionado de la lista
+    if (!this.coordinadorEditando.municipio.trim()) {
+      this.toastService.warning('El municipio es obligatorio');
       return;
+    }
+    
+    if (!this.municipioSeleccionadoDeListaEditar) {
+      this.toastService.warning('Debe seleccionar el municipio de la lista de sugerencias');
+      return;
+    }
+    
+    // Si no hay coordenadas del municipio, no se puede guardar
+    if (!this.municipioLatitudEditar || !this.municipioLongitudEditar) {
+      this.toastService.warning('No se pudieron obtener las coordenadas del municipio. Por favor, seleccione el municipio nuevamente.');
+      return;
+    }
+    
+    // Si hay sector pero no tiene coordenadas, usar las del municipio
+    if (this.coordinadorEditando.sector.trim() && (!this.coordinadorEditando.latitud || !this.coordinadorEditando.longitud)) {
+      this.coordinadorEditando.latitud = this.municipioLatitudEditar;
+      this.coordinadorEditando.longitud = this.municipioLongitudEditar;
+    }
+    
+    // Asegurar que siempre haya coordenadas (del municipio al menos)
+    if (!this.coordinadorEditando.latitud || !this.coordinadorEditando.longitud) {
+      this.coordinadorEditando.latitud = this.municipioLatitudEditar;
+      this.coordinadorEditando.longitud = this.municipioLongitudEditar;
     }
     if (!this.coordinadorEditando.nombreCompleto.trim()) {
       this.toastService.warning('El nombre completo es obligatorio');

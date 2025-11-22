@@ -57,7 +57,7 @@ export class GoogleMapsService {
     });
   }
 
-  async getMunicipalitySuggestions(input: string, countryCode: string = 'CO'): Promise<any[]> {
+  async getMunicipalitySuggestions(input: string, countryCode: string = 'CO', municipio?: string): Promise<any[]> {
     await this.waitForGoogleMapsToLoad();
     
     if (!input || input.length < 2) {
@@ -65,15 +65,50 @@ export class GoogleMapsService {
     }
 
     return new Promise((resolve, reject) => {
+      // Si hay un municipio seleccionado, buscar sectores cerca de ese municipio
+      let searchInput = input;
+      if (municipio && municipio.trim()) {
+        // Buscar sectores dentro del municipio - incluir municipio en la búsqueda
+        searchInput = `${input}, ${municipio}, Colombia`;
+      }
+
       const request = {
-        input: input,
-        types: ['locality', 'sublocality', 'administrative_area_level_3'],
+        input: searchInput,
+        types: ['sublocality', 'sublocality_level_1', 'neighborhood', 'administrative_area_level_3'],
         componentRestrictions: { country: countryCode }
       };
 
       this.autocompleteService.getPlacePredictions(request, (predictions: any, status: any) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          resolve(predictions);
+          // Filtrar resultados para que contengan el municipio si está especificado
+          // Esto asegura que los sectores pertenezcan al municipio seleccionado
+          let filtered = predictions;
+          if (municipio && municipio.trim()) {
+            const municipioLower = municipio.toLowerCase();
+            // Filtrar por municipio en la descripción completa
+            filtered = predictions.filter((p: any) => {
+              const descLower = p.description.toLowerCase();
+              // Verificar que el municipio aparezca en la descripción
+              // y que no sea solo el nombre del sector sin el municipio
+              return descLower.includes(municipioLower);
+            });
+            
+            // Si no hay resultados con el filtro estricto, intentar búsqueda más flexible
+            // pero priorizando resultados que contengan el municipio
+            if (filtered.length === 0) {
+              // Buscar resultados que al menos mencionen el municipio en algún término
+              filtered = predictions.filter((p: any) => {
+                if (p.terms && p.terms.length > 1) {
+                  // Verificar si algún término (excepto el primero que es el sector) contiene el municipio
+                  return p.terms.some((term: any, index: number) => 
+                    index > 0 && term.value.toLowerCase().includes(municipioLower)
+                  );
+                }
+                return false;
+              });
+            }
+          }
+          resolve(filtered);
         } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
           resolve([]);
         } else {
