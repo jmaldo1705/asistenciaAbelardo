@@ -587,7 +587,7 @@ export class CoordinadoresComponent implements OnInit {
                 .join(', ')
             : '-';
 
-          // Agregar fila del defensor con la nueva estructura
+          // Agregar fila del defensor con resumen (Hoja 1)
           datosExcel.push({
             'Municipio': coordinador.municipio || '-',
             'Sector': coordinador.sector || '-',
@@ -601,7 +601,7 @@ export class CoordinadoresComponent implements OnInit {
             'Observaciones': coordinador.observaciones || '-'
           });
 
-          // Agregar detalle de llamadas si existen
+          // Agregar detalle de llamadas para la segunda hoja
           if (coordinador.llamadas && coordinador.llamadas.length > 0) {
             coordinador.llamadas.forEach(llamada => {
               datosLlamadas.push({
@@ -632,7 +632,7 @@ export class CoordinadoresComponent implements OnInit {
     // Crear libro de trabajo
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
 
-    // ===== HOJA 1: DEFENSORES =====
+    // ===== HOJA 1: DEFENSORES (Resumen) =====
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datos);
 
     // Ajustar ancho de columnas para la hoja de defensores
