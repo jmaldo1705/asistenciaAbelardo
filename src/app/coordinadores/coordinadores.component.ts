@@ -595,12 +595,9 @@ export class CoordinadoresComponent implements OnInit {
             'Celular': coordinador.celular,
             'Email': coordinador.email || '-',
             'Estado': coordinador.confirmado ? 'Confirmado' : 'No Confirmado',
-            'Número de Invitados': coordinador.numeroInvitados || 0,
             'Número de Llamadas': coordinador.llamadas ? coordinador.llamadas.length : 0,
             'Última Fecha de Llamada': ultimaLlamada ? this.formatearFecha(ultimaLlamada.fecha) : 'No contactado',
             'Eventos Asociados': eventosLlamadas,
-            'Latitud': coordinador.latitud || '-',
-            'Longitud': coordinador.longitud || '-',
             'Observaciones': coordinador.observaciones || '-'
           });
 
@@ -646,12 +643,9 @@ export class CoordinadoresComponent implements OnInit {
       { wch: 15 }, // Celular
       { wch: 25 }, // Email
       { wch: 15 }, // Estado
-      { wch: 18 }, // Número de Invitados
       { wch: 18 }, // Número de Llamadas
       { wch: 25 }, // Última Fecha de Llamada
       { wch: 30 }, // Eventos Asociados
-      { wch: 12 }, // Latitud
-      { wch: 12 }, // Longitud
       { wch: 40 }  // Observaciones
     ];
     ws['!cols'] = colWidths;
@@ -685,10 +679,8 @@ export class CoordinadoresComponent implements OnInit {
 
         // Determinar alineación según la columna
         let horizontalAlign: "left" | "center" | "right" = "center";
-        if (C === 2 || C === 9 || C === 12) { // Nombre Completo, Eventos Asociados, Observaciones
+        if (C === 2 || C === 8 || C === 9) { // Nombre Completo, Eventos Asociados, Observaciones
           horizontalAlign = "left";
-        } else if (C === 10 || C === 11) { // Latitud, Longitud
-          horizontalAlign = "right";
         }
 
         ws[address].s = {
