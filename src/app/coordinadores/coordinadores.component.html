@@ -77,7 +77,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let coordinador of coordinadoresPaginados" [class.confirmado-row]="coordinador.confirmado">
+        <tr *ngFor="let coordinador of coordinadoresPaginados" [class.confirmado-row]="coordinador.llamadas && coordinador.llamadas.length > 0">
           <td><strong>{{ coordinador.municipio || '-' }}</strong></td>
           <td><strong>{{ coordinador.sector || '-' }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
