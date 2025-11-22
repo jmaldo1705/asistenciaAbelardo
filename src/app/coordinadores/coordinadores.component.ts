@@ -596,8 +596,7 @@ export class CoordinadoresComponent implements OnInit {
             'Email': coordinador.email || '-',
             'Número de Llamadas': coordinador.llamadas ? coordinador.llamadas.length : 0,
             'Última Fecha de Llamada': ultimaLlamada ? this.formatearFecha(ultimaLlamada.fecha) : 'No contactado',
-            'Eventos Asociados': eventosLlamadas,
-            'Observaciones': coordinador.observaciones || '-'
+            'Eventos Asociados': eventosLlamadas
           });
 
           // Agregar detalle de llamadas para la segunda hoja
@@ -643,8 +642,7 @@ export class CoordinadoresComponent implements OnInit {
       { wch: 25 }, // Email
       { wch: 18 }, // Número de Llamadas
       { wch: 25 }, // Última Fecha de Llamada
-      { wch: 30 }, // Eventos Asociados
-      { wch: 40 }  // Observaciones
+      { wch: 30 }  // Eventos Asociados
     ];
     ws['!cols'] = colWidths;
 
@@ -677,7 +675,7 @@ export class CoordinadoresComponent implements OnInit {
 
         // Determinar alineación según la columna
         let horizontalAlign: "left" | "center" | "right" = "center";
-        if (C === 2 || C === 7 || C === 8) { // Nombre Completo, Eventos Asociados, Observaciones
+        if (C === 2 || C === 7) { // Nombre Completo, Eventos Asociados
           horizontalAlign = "left";
         }
 
