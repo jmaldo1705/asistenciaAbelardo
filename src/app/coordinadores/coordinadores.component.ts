@@ -227,37 +227,72 @@ export class CoordinadoresComponent implements OnInit {
     const fin = inicio + this.itemsPorPagina;
     const paginados = this.coordinadoresAgrupados.slice(inicio, fin);
     
-    // Ajustar rowspan y esPrimeraFila para la paginación
-    // Si la primera fila de la página no es la primera del grupo, necesitamos ajustar
-    if (paginados.length > 0 && inicio > 0) {
-      const primeraFilaPagina = paginados[0];
-      const filaAnterior = this.coordinadoresAgrupados[inicio - 1];
-      
-      // Si el municipio cambió o es diferente, es una nueva sección en esta página
-      if (primeraFilaPagina.municipio !== filaAnterior.municipio) {
-        // Calcular cuántas filas quedan de este grupo en esta página
-        const municipioActual = primeraFilaPagina.municipio;
-        const filasRestantes = paginados.filter(c => c.municipio === municipioActual).length;
-        
-        // Actualizar la primera fila de la página para mostrar el municipio
-        primeraFilaPagina.esPrimeraFila = true;
-        primeraFilaPagina.mostrarMunicipio = true;
-        primeraFilaPagina.rowspan = filasRestantes;
-        primeraFilaPagina.municipioConCantidad = `${municipioActual} (${this.coordinadoresAgrupados.filter(c => c.municipio === municipioActual).length})`;
-      }
+    if (paginados.length === 0) {
+      return paginados;
     }
     
-    // Ajustar rowspan para grupos que continúan en la página siguiente
-    paginados.forEach((coord, index) => {
-      if (coord.esPrimeraFila) {
-        // Calcular cuántas filas de este grupo están en esta página
-        const municipioActual = coord.municipio;
-        const filasEnPagina = paginados.filter(c => c.municipio === municipioActual).length;
-        coord.rowspan = filasEnPagina;
+    // Crear una copia para modificar sin afectar el array original
+    const resultado = paginados.map(coord => ({ ...coord }));
+    
+    // Determinar qué municipios deben mostrarse en esta página
+    const municipiosEnPagina = new Map<string, { primeraFila: number, totalEnPagina: number, totalEnGrupo: number }>();
+    
+    resultado.forEach((coord, index) => {
+      const municipio = coord.municipio || 'Sin municipio';
+      
+      if (!municipiosEnPagina.has(municipio)) {
+        // Primera vez que vemos este municipio en esta página
+        const totalEnGrupo = this.coordinadoresAgrupados.filter(c => (c.municipio || 'Sin municipio') === municipio).length;
+        const totalEnPagina = resultado.filter(c => (c.municipio || 'Sin municipio') === municipio).length;
+        
+        municipiosEnPagina.set(municipio, {
+          primeraFila: index,
+          totalEnPagina: totalEnPagina,
+          totalEnGrupo: totalEnGrupo
+        });
       }
     });
     
-    return paginados;
+    // Verificar si la primera fila de la página continúa un grupo de la página anterior
+    if (inicio > 0) {
+      const primeraFilaPagina = resultado[0];
+      const filaAnterior = this.coordinadoresAgrupados[inicio - 1];
+      const municipioPrimeraFila = primeraFilaPagina.municipio || 'Sin municipio';
+      const municipioAnterior = filaAnterior.municipio || 'Sin municipio';
+      
+      // Si el municipio es el mismo, significa que continúa desde la página anterior
+      if (municipioPrimeraFila === municipioAnterior) {
+        const info = municipiosEnPagina.get(municipioPrimeraFila)!;
+        primeraFilaPagina.esPrimeraFila = true;
+        primeraFilaPagina.mostrarMunicipio = true;
+        primeraFilaPagina.rowspan = info.totalEnPagina;
+        primeraFilaPagina.municipioConCantidad = `${municipioPrimeraFila} (${info.totalEnGrupo})`;
+      }
+    }
+    
+    // Aplicar configuración a todos los grupos en esta página
+    municipiosEnPagina.forEach((info, municipio) => {
+      const primeraFila = resultado[info.primeraFila];
+      
+      // Si no se configuró arriba (nuevo grupo que empieza en esta página)
+      if (!primeraFila.esPrimeraFila || !primeraFila.mostrarMunicipio) {
+        primeraFila.esPrimeraFila = true;
+        primeraFila.mostrarMunicipio = true;
+        primeraFila.rowspan = info.totalEnPagina;
+        primeraFila.municipioConCantidad = `${municipio} (${info.totalEnGrupo})`;
+      }
+      
+      // Marcar las demás filas del mismo municipio como no primera fila
+      resultado.forEach((coord, index) => {
+        const coordMunicipio = coord.municipio || 'Sin municipio';
+        if (coordMunicipio === municipio && index !== info.primeraFila) {
+          coord.esPrimeraFila = false;
+          coord.mostrarMunicipio = false;
+        }
+      });
+    });
+    
+    return resultado;
   }
 
   get totalPaginas(): number {
