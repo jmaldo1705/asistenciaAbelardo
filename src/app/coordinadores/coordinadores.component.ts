@@ -6,6 +6,7 @@ import { CoordinadorService } from '../services/coordinador.service';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 import { GoogleMapsService } from '../services/google-maps.service';
+import { WhatsAppService, DestinatarioWhatsApp } from '../services/whatsapp.service';
 import { Coordinador, Llamada, Estadisticas } from '../models/coordinador.model';
 import { Evento } from '../models/evento.model';
 import { EventoService } from '../services/evento.service';
@@ -39,6 +40,7 @@ export class CoordinadoresComponent implements OnInit {
     nombreCompleto: '',
     celular: '',
     email: '',
+    cedula: '',
     confirmado: false,
     numeroInvitados: 0,
     latitud: undefined,
@@ -89,12 +91,40 @@ export class CoordinadoresComponent implements OnInit {
   mostrarModalEditar: boolean = false;
   coordinadorEditando: Coordinador | null = null;
 
+  // Modal de WhatsApp
+  mostrarModalWhatsApp: boolean = false;
+  mensajeWhatsApp: string = '';
+  plantillaSeleccionada: string = '';
+  defensoresSeleccionados: Set<number> = new Set();
+  enviandoMensajes: boolean = false;
+  
+  // Plantillas predefinidas
+  plantillas: { nombre: string; mensaje: string }[] = [
+    {
+      nombre: 'Saludo General',
+      mensaje: 'Hola {{nombre}}, esperamos que esté muy bien. Queremos recordarle sobre nuestro evento.'
+    },
+    {
+      nombre: 'Recordatorio de Evento',
+      mensaje: 'Hola {{nombre}}, le recordamos que tenemos un evento próximo. Por favor confirme su asistencia.'
+    },
+    {
+      nombre: 'Confirmación',
+      mensaje: 'Hola {{nombre}}, queremos confirmar su participación en nuestro evento. Por favor responda este mensaje.'
+    },
+    {
+      nombre: 'Información Importante',
+      mensaje: 'Hola {{nombre}}, tenemos información importante que compartir con usted. Por favor contáctenos.'
+    }
+  ];
+
   constructor(
     private coordinadorService: CoordinadorService,
     private authService: AuthService,
     private toastService: ToastService,
     private googleMapsService: GoogleMapsService,
     private eventoService: EventoService,
+    private whatsAppService: WhatsAppService,
     private router: Router
   ) { }
 
@@ -141,6 +171,7 @@ export class CoordinadoresComponent implements OnInit {
         coord.nombreCompleto.toLowerCase().includes(this.filtroMunicipio.toLowerCase()) ||
         coord.celular.includes(this.filtroMunicipio) ||
         (coord.email && coord.email.toLowerCase().includes(this.filtroMunicipio.toLowerCase())) ||
+        (coord.cedula && coord.cedula.includes(this.filtroMunicipio)) ||
         (coord.observaciones && coord.observaciones.toLowerCase().includes(this.filtroMunicipio.toLowerCase()));
 
       return coincide;
@@ -304,6 +335,7 @@ export class CoordinadoresComponent implements OnInit {
       nombreCompleto: '',
       celular: '',
       email: '',
+      cedula: '',
       confirmado: false,
       numeroInvitados: 0,
       latitud: undefined,
@@ -523,7 +555,15 @@ export class CoordinadoresComponent implements OnInit {
         this.cerrarModalNuevo();
       },
       error: (error) => {
-        this.toastService.error('Error al crear defensor');
+        if (error.error && error.error.error) {
+          if (error.error.error.includes('cédula ya existe')) {
+            this.toastService.error('⚠️ Esta cédula ya existe. Por favor, use otra cédula.');
+          } else {
+            this.toastService.error('Error: ' + error.error.error);
+          }
+        } else {
+          this.toastService.error('Error al crear defensor');
+        }
         console.error('Error:', error);
       }
     });
@@ -592,6 +632,7 @@ export class CoordinadoresComponent implements OnInit {
             'Municipio': coordinador.municipio || '-',
             'Sector': coordinador.sector || '-',
             'Nombre Completo': coordinador.nombreCompleto,
+            'Cédula': coordinador.cedula || '-',
             'Celular': coordinador.celular,
             'Email': coordinador.email || '-',
             'Número de Llamadas': coordinador.llamadas ? coordinador.llamadas.length : 0,
@@ -604,6 +645,7 @@ export class CoordinadoresComponent implements OnInit {
             coordinador.llamadas.forEach(llamada => {
               datosLlamadas.push({
                 'Defensor': coordinador.nombreCompleto,
+                'Cédula': coordinador.cedula || '-',
                 'Celular': coordinador.celular,
                 'Municipio': coordinador.municipio || '-',
                 'Sector': coordinador.sector || '-',
@@ -638,6 +680,7 @@ export class CoordinadoresComponent implements OnInit {
       { wch: 20 }, // Municipio
       { wch: 20 }, // Sector
       { wch: 30 }, // Nombre Completo
+      { wch: 15 }, // Cédula
       { wch: 15 }, // Celular
       { wch: 25 }, // Email
       { wch: 18 }, // Número de Llamadas
@@ -675,7 +718,7 @@ export class CoordinadoresComponent implements OnInit {
 
         // Determinar alineación según la columna
         let horizontalAlign: "left" | "center" | "right" = "center";
-        if (C === 2 || C === 7) { // Nombre Completo, Eventos Asociados
+        if (C === 2 || C === 8) { // Nombre Completo, Eventos Asociados
           horizontalAlign = "left";
         }
 
@@ -718,6 +761,7 @@ export class CoordinadoresComponent implements OnInit {
       // Ajustar ancho de columnas para la hoja de llamadas
       const colWidthsLlamadas = [
         { wch: 30 }, // Defensor
+        { wch: 15 }, // Cédula
         { wch: 15 }, // Celular
         { wch: 20 }, // Municipio
         { wch: 20 }, // Sector
@@ -757,7 +801,7 @@ export class CoordinadoresComponent implements OnInit {
           if (!wsLlamadas[address]) continue;
 
           let horizontalAlign: "left" | "center" | "right" = "center";
-          if (C === 0 || C === 4 || C === 5 || C === 6 || C === 7 || C === 8) { // Columnas de texto
+          if (C === 0 || C === 4 || C === 5 || C === 6 || C === 7 || C === 8 || C === 9) { // Columnas de texto
             horizontalAlign = "left";
           }
 
@@ -816,6 +860,117 @@ export class CoordinadoresComponent implements OnInit {
 
   irAEventos(): void {
     this.router.navigate(['/eventos']);
+  }
+
+  // Funciones de WhatsApp
+  abrirModalWhatsAppMasivo(): void {
+    this.mensajeWhatsApp = '';
+    this.plantillaSeleccionada = '';
+    this.defensoresSeleccionados.clear();
+    this.mostrarModalWhatsApp = true;
+    this.enviandoMensajes = false;
+  }
+
+  cerrarModalWhatsApp(): void {
+    if (this.enviandoMensajes) {
+      return; // No permitir cerrar mientras se envían mensajes
+    }
+    this.mostrarModalWhatsApp = false;
+    this.mensajeWhatsApp = '';
+    this.plantillaSeleccionada = '';
+    this.defensoresSeleccionados.clear();
+  }
+
+  aplicarPlantilla(): void {
+    if (this.plantillaSeleccionada) {
+      const plantilla = this.plantillas.find(p => p.nombre === this.plantillaSeleccionada);
+      if (plantilla) {
+        this.mensajeWhatsApp = plantilla.mensaje;
+      }
+    }
+  }
+
+  enviarWhatsApp(): void {
+    if (!this.mensajeWhatsApp.trim()) {
+      this.toastService.warning('Por favor, redacte un mensaje');
+      return;
+    }
+
+    if (this.defensoresSeleccionados.size === 0) {
+      this.toastService.warning('Por favor, seleccione al menos un defensor');
+      return;
+    }
+
+    const coordinadoresSeleccionados = this.coordinadores.filter(c => 
+      c.id && this.defensoresSeleccionados.has(c.id) && c.celular
+    );
+
+    if (coordinadoresSeleccionados.length === 0) {
+      this.toastService.warning('No se encontraron defensores seleccionados con número de celular');
+      return;
+    }
+
+    // Preparar destinatarios para el servicio
+    const destinatarios: DestinatarioWhatsApp[] = coordinadoresSeleccionados.map(coord => ({
+      celular: coord.celular!,
+      nombre: coord.nombreCompleto,
+      municipio: coord.municipio,
+      sector: coord.sector
+    }));
+
+    // Enviar mensajes a través de Twilio
+    this.enviandoMensajes = true;
+    this.toastService.info('⏳ Enviando mensajes...');
+
+    this.whatsAppService.enviarMensajesMasivos(destinatarios, this.mensajeWhatsApp).subscribe({
+      next: (respuesta) => {
+        this.enviandoMensajes = false;
+        
+        if (respuesta.success) {
+          if (respuesta.fallidos === 0) {
+            this.toastService.success(`✅ Se enviaron ${respuesta.exitosos} mensajes exitosamente`);
+          } else {
+            this.toastService.warning(
+              `⚠️ Se enviaron ${respuesta.exitosos} mensajes, ${respuesta.fallidos} fallaron`
+            );
+          }
+          this.cerrarModalWhatsApp();
+        } else {
+          this.toastService.error(respuesta.error || 'Error al enviar mensajes');
+        }
+      },
+      error: (error) => {
+        this.enviandoMensajes = false;
+        console.error('Error al enviar mensajes:', error);
+        
+        if (error.error && error.error.error) {
+          this.toastService.error('Error: ' + error.error.error);
+        } else {
+          this.toastService.error('Error al enviar mensajes. Verifique la configuración de Twilio.');
+        }
+      }
+    });
+  }
+
+  toggleDefensorSeleccionado(id: number | undefined): void {
+    if (id === undefined) return;
+    if (this.defensoresSeleccionados.has(id)) {
+      this.defensoresSeleccionados.delete(id);
+    } else {
+      this.defensoresSeleccionados.add(id);
+    }
+  }
+
+  seleccionarTodosDefensores(): void {
+    this.coordinadores.forEach(c => {
+      if (c.id && c.celular) {
+        this.defensoresSeleccionados.add(c.id);
+      }
+    });
+  }
+
+  deseleccionarTodosDefensores(): void {
+    this.defensoresSeleccionados.clear();
   }
 
   abrirModalEditar(coordinador: Coordinador): void {
@@ -1046,7 +1201,15 @@ export class CoordinadoresComponent implements OnInit {
         this.cerrarModalEditar();
       },
       error: (error) => {
-        this.toastService.error('Error al actualizar defensor');
+        if (error.error && error.error.error) {
+          if (error.error.error.includes('cédula ya existe')) {
+            this.toastService.error('⚠️ Esta cédula ya existe. Por favor, use otra cédula.');
+          } else {
+            this.toastService.error('Error: ' + error.error.error);
+          }
+        } else {
+          this.toastService.error('Error al actualizar defensor');
+        }
         console.error('Error:', error);
       }
     });

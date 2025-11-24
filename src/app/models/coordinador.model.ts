@@ -7,6 +7,7 @@ export interface Coordinador {
   nombreCompleto: string;
   celular: string;
   email?: string;
+  cedula?: string;
   fechaLlamada?: Date;
   confirmado: boolean;
   numeroInvitados: number;

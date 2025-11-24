@@ -44,6 +44,10 @@
     <button class="btn-eventos" (click)="irAEventos()">
       <span class="btn-icon-main">📅</span> Gestionar Eventos
     </button>
+    <!-- Botón de WhatsApp oculto temporalmente - Lógica mantenida -->
+    <!-- <button class="btn-whatsapp" (click)="abrirModalWhatsAppMasivo()">
+      <span class="btn-icon-main">💬</span> Enviar WhatsApp
+    </button> -->
     <button class="btn-exportar" (click)="exportarAExcel()">
       <span class="btn-icon-main">↓</span> Exportar a Excel
     </button>
@@ -57,7 +61,7 @@
     <div class="filter-group">
       <label>🔍 Buscar:</label>
       <input type="text" [(ngModel)]="filtroMunicipio" (ngModelChange)="resetearPaginacion()"
-        placeholder="Buscar por municipio, sector, nombre, celular, email u observaciones..." class="filter-input">
+        placeholder="Buscar por municipio, sector, nombre, celular, cédula, email u observaciones..." class="filter-input">
     </div>
   </div>
 
@@ -69,6 +73,7 @@
           <th>Municipio</th>
           <th>Sector</th>
           <th>Defensor</th>
+          <th>Cédula</th>
           <th>Celular</th>
           <th>Email</th>
           <th>Llamadas</th>
@@ -81,6 +86,7 @@
           <td><strong>{{ coordinador.municipio || '-' }}</strong></td>
           <td><strong>{{ coordinador.sector || '-' }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
+          <td>{{ coordinador.cedula || '-' }}</td>
           <td>
             <a href="tel:{{ coordinador.celular }}" class="phone-link">
               {{ coordinador.celular }}
@@ -226,6 +232,12 @@
           placeholder="correo@ejemplo.com (opcional)">
       </div>
 
+      <div class="form-group">
+        <label>Cédula 🆔</label>
+        <input type="text" [(ngModel)]="nuevoCoordinador.cedula" class="form-control"
+          placeholder="Número de cédula (opcional, debe ser único)">
+      </div>
+
       <p class="form-note">* Campos obligatorios</p>
       <p class="form-note">🌍 Los campos de municipio y sector usan Google Maps para autocompletado</p>
       <p class="form-note">💡 Puedes dejar municipio o sector en blanco, pero al menos uno debe estar completo</p>
@@ -335,6 +347,12 @@
           placeholder="correo@ejemplo.com (opcional)">
       </div>
 
+      <div class="form-group">
+        <label>Cédula 🆔</label>
+        <input type="text" [(ngModel)]="coordinadorEditando.cedula" class="form-control"
+          placeholder="Número de cédula (opcional, debe ser único)">
+      </div>
+
       <p class="form-note">* Campos obligatorios</p>
       <p class="form-note">💡 Las llamadas y observaciones se gestionan desde el historial de llamadas (botón 👁️)</p>
       <p class="form-note">🌍 Los campos de municipio y sector usan Google Maps para autocompletado</p>
@@ -430,6 +448,85 @@
       <button class="btn btn-secondary" (click)="cerrarModalRegistrarLlamada()">Cancelar</button>
       <button class="btn btn-primary" (click)="registrarLlamadaRapida()" [disabled]="!eventoSeleccionadoLlamada">
         💾 Registrar Llamada
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para enviar WhatsApp -->
+<div class="modal-overlay" *ngIf="mostrarModalWhatsApp" (click)="cerrarModalWhatsApp()">
+  <div class="modal-content modal-whatsapp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>💬 Enviar Mensaje por WhatsApp</h2>
+      <button class="close-btn" (click)="cerrarModalWhatsApp()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Selector de plantillas -->
+      <div class="form-group">
+        <label>Plantillas Predefinidas (opcional)</label>
+        <select [(ngModel)]="plantillaSeleccionada" (change)="aplicarPlantilla()" class="form-control">
+          <option value="">Seleccione una plantilla...</option>
+          <option *ngFor="let plantilla of plantillas" [value]="plantilla.nombre">
+            {{ plantilla.nombre }}
+          </option>
+        </select>
+        <small class="form-hint" ngNonBindable>Las plantillas incluyen variables como {{nombre}}, {{municipio}}, {{sector}} que se reemplazarán automáticamente</small>
+      </div>
+
+      <!-- Textarea para redactar mensaje -->
+      <div class="form-group">
+        <label>Mensaje *</label>
+        <textarea 
+          [(ngModel)]="mensajeWhatsApp" 
+          rows="8" 
+          class="form-control"
+          placeholder="Redacte su mensaje aquí... Puede usar variables como se muestra abajo"
+          required></textarea>
+        <small class="form-hint" ngNonBindable>Variables disponibles: {{nombre}}, {{municipio}}, {{sector}}</small>
+      </div>
+
+      <!-- Selección de defensores -->
+      <div class="form-group">
+        <div class="defensores-seleccion-header">
+          <label>Seleccionar Defensores</label>
+          <div class="selection-actions">
+            <button type="button" class="btn-link" (click)="seleccionarTodosDefensores()">Seleccionar Todos</button>
+            <span>|</span>
+            <button type="button" class="btn-link" (click)="deseleccionarTodosDefensores()">Deseleccionar Todos</button>
+          </div>
+        </div>
+        <div class="defensores-list">
+          <div 
+            *ngFor="let coordinador of coordinadores" 
+            class="defensor-checkbox-item"
+            [class.disabled]="!coordinador.celular">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [checked]="coordinador.id && defensoresSeleccionados.has(coordinador.id)"
+                [disabled]="!coordinador.celular"
+                (change)="toggleDefensorSeleccionado(coordinador.id)">
+              <span class="defensor-info">
+                <strong>{{ coordinador.nombreCompleto }}</strong>
+                <span class="defensor-details">
+                  {{ coordinador.municipio || '-' }} - {{ coordinador.celular || 'Sin celular' }}
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <small class="form-hint">
+          Seleccionados: {{ defensoresSeleccionados.size }} de {{ coordinadores.length }} defensores
+        </small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalWhatsApp()">Cancelar</button>
+      <button 
+        class="btn btn-primary" 
+        (click)="enviarWhatsApp()" 
+        [disabled]="!mensajeWhatsApp.trim() || defensoresSeleccionados.size === 0 || enviandoMensajes">
+        💬 Enviar Mensajes
       </button>
     </div>
   </div>
