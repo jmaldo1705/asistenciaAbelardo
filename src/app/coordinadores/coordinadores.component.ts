@@ -225,7 +225,39 @@ export class CoordinadoresComponent implements OnInit {
   get coordinadoresPaginados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string, rowspan: number, esPrimeraFila: boolean}> {
     const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
     const fin = inicio + this.itemsPorPagina;
-    return this.coordinadoresAgrupados.slice(inicio, fin);
+    const paginados = this.coordinadoresAgrupados.slice(inicio, fin);
+    
+    // Ajustar rowspan y esPrimeraFila para la paginación
+    // Si la primera fila de la página no es la primera del grupo, necesitamos ajustar
+    if (paginados.length > 0 && inicio > 0) {
+      const primeraFilaPagina = paginados[0];
+      const filaAnterior = this.coordinadoresAgrupados[inicio - 1];
+      
+      // Si el municipio cambió o es diferente, es una nueva sección en esta página
+      if (primeraFilaPagina.municipio !== filaAnterior.municipio) {
+        // Calcular cuántas filas quedan de este grupo en esta página
+        const municipioActual = primeraFilaPagina.municipio;
+        const filasRestantes = paginados.filter(c => c.municipio === municipioActual).length;
+        
+        // Actualizar la primera fila de la página para mostrar el municipio
+        primeraFilaPagina.esPrimeraFila = true;
+        primeraFilaPagina.mostrarMunicipio = true;
+        primeraFilaPagina.rowspan = filasRestantes;
+        primeraFilaPagina.municipioConCantidad = `${municipioActual} (${this.coordinadoresAgrupados.filter(c => c.municipio === municipioActual).length})`;
+      }
+    }
+    
+    // Ajustar rowspan para grupos que continúan en la página siguiente
+    paginados.forEach((coord, index) => {
+      if (coord.esPrimeraFila) {
+        // Calcular cuántas filas de este grupo están en esta página
+        const municipioActual = coord.municipio;
+        const filasEnPagina = paginados.filter(c => c.municipio === municipioActual).length;
+        coord.rowspan = filasEnPagina;
+      }
+    });
+    
+    return paginados;
   }
 
   get totalPaginas(): number {
