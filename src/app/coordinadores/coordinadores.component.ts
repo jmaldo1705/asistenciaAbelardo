@@ -222,7 +222,7 @@ export class CoordinadoresComponent implements OnInit {
     return resultado;
   }
 
-  get coordinadoresPaginados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string}> {
+  get coordinadoresPaginados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string, rowspan: number, esPrimeraFila: boolean}> {
     const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
     const fin = inicio + this.itemsPorPagina;
     return this.coordinadoresAgrupados.slice(inicio, fin);
