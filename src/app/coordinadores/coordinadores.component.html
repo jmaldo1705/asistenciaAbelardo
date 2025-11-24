@@ -83,9 +83,8 @@
       </thead>
       <tbody>
         <tr *ngFor="let coordinador of coordinadoresPaginados" [class.confirmado-row]="coordinador.llamadas && coordinador.llamadas.length > 0">
-          <td>
-            <strong *ngIf="coordinador.mostrarMunicipio">{{ coordinador.municipioConCantidad || (coordinador.municipio || '-') }}</strong>
-            <span *ngIf="!coordinador.mostrarMunicipio" class="municipio-vacio"></span>
+          <td *ngIf="coordinador.esPrimeraFila" [attr.rowspan]="coordinador.rowspan" class="municipio-cell">
+            <strong>{{ coordinador.municipioConCantidad || (coordinador.municipio || '-') }}</strong>
           </td>
           <td><strong>{{ coordinador.sector || '-' }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>

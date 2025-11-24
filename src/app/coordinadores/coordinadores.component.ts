@@ -191,7 +191,7 @@ export class CoordinadoresComponent implements OnInit {
   }
 
   // Agrupar coordinadores por municipio y aplanar para mostrar en tabla
-  get coordinadoresAgrupados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string}> {
+  get coordinadoresAgrupados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string, rowspan: number, esPrimeraFila: boolean}> {
     const agrupados = new Map<string, Coordinador[]>();
     
     this.coordinadoresFiltrados.forEach(coord => {
@@ -203,7 +203,7 @@ export class CoordinadoresComponent implements OnInit {
     });
 
     // Aplanar y agregar información de agrupación
-    const resultado: Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string}> = [];
+    const resultado: Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string, rowspan: number, esPrimeraFila: boolean}> = [];
     
     Array.from(agrupados.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -212,7 +212,9 @@ export class CoordinadoresComponent implements OnInit {
           resultado.push({
             ...coord,
             mostrarMunicipio: index === 0, // Solo mostrar municipio en la primera fila
-            municipioConCantidad: index === 0 ? `${municipio} (${coordinadores.length})` : ''
+            municipioConCantidad: index === 0 ? `${municipio} (${coordinadores.length})` : '',
+            rowspan: coordinadores.length, // Número de filas que debe ocupar
+            esPrimeraFila: index === 0 // Indica si es la primera fila del grupo
           });
         });
       });

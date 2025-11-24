@@ -606,13 +606,11 @@ tbody tr:hover {
   min-width: 40px;
 }
 
-.municipio-vacio {
-  display: block;
-  height: 1px;
-}
-
-tbody tr:not(:first-child) td:first-child {
-  border-top: 1px solid #e5e7eb;
+.municipio-cell {
+  vertical-align: top;
+  border-right: 2px solid #e5e7eb;
+  background-color: #f9fafb;
+  font-weight: 600;
 }
 
 .fecha-cell {
