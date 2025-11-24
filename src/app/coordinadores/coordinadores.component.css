@@ -606,6 +606,15 @@ tbody tr:hover {
   min-width: 40px;
 }
 
+.municipio-vacio {
+  display: block;
+  height: 1px;
+}
+
+tbody tr:not(:first-child) td:first-child {
+  border-top: 1px solid #e5e7eb;
+}
+
 .fecha-cell {
   font-size: 0.85rem;
   color: #6b7280;

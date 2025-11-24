@@ -65,7 +65,7 @@
     </div>
   </div>
 
-  <!-- Tabla de defensores -->
+  <!-- Tabla de defensores agrupados por municipio -->
   <div class="table-container">
     <table>
       <thead>
@@ -83,7 +83,10 @@
       </thead>
       <tbody>
         <tr *ngFor="let coordinador of coordinadoresPaginados" [class.confirmado-row]="coordinador.llamadas && coordinador.llamadas.length > 0">
-          <td><strong>{{ coordinador.municipio || '-' }}</strong></td>
+          <td>
+            <strong *ngIf="coordinador.mostrarMunicipio">{{ coordinador.municipioConCantidad || (coordinador.municipio || '-') }}</strong>
+            <span *ngIf="!coordinador.mostrarMunicipio" class="municipio-vacio"></span>
+          </td>
           <td><strong>{{ coordinador.sector || '-' }}</strong></td>
           <td>{{ coordinador.nombreCompleto }}</td>
           <td>{{ coordinador.cedula || '-' }}</td>
@@ -117,14 +120,14 @@
             </div>
           </td>
         </tr>
-        <tr *ngIf="coordinadoresFiltrados.length === 0">
-          <td colspan="8" class="empty-message">
+        <tr *ngIf="coordinadoresAgrupados.length === 0">
+          <td colspan="9" class="empty-message">
             No se encontraron defensores
           </td>
         </tr>
-  </tbody>
-  </table>
-</div>
+      </tbody>
+    </table>
+  </div>
 
 <!-- Controles de paginación -->
 <div class="pagination-container" *ngIf="coordinadoresFiltrados.length > 0">

@@ -190,14 +190,44 @@ export class CoordinadoresComponent implements OnInit {
     });
   }
 
-  get coordinadoresPaginados(): Coordinador[] {
+  // Agrupar coordinadores por municipio y aplanar para mostrar en tabla
+  get coordinadoresAgrupados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string}> {
+    const agrupados = new Map<string, Coordinador[]>();
+    
+    this.coordinadoresFiltrados.forEach(coord => {
+      const municipio = coord.municipio || 'Sin municipio';
+      if (!agrupados.has(municipio)) {
+        agrupados.set(municipio, []);
+      }
+      agrupados.get(municipio)!.push(coord);
+    });
+
+    // Aplanar y agregar información de agrupación
+    const resultado: Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string}> = [];
+    
+    Array.from(agrupados.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([municipio, coordinadores]) => {
+        coordinadores.forEach((coord, index) => {
+          resultado.push({
+            ...coord,
+            mostrarMunicipio: index === 0, // Solo mostrar municipio en la primera fila
+            municipioConCantidad: index === 0 ? `${municipio} (${coordinadores.length})` : ''
+          });
+        });
+      });
+
+    return resultado;
+  }
+
+  get coordinadoresPaginados(): Array<Coordinador & {mostrarMunicipio: boolean, municipioConCantidad: string}> {
     const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
     const fin = inicio + this.itemsPorPagina;
-    return this.coordinadoresFiltrados.slice(inicio, fin);
+    return this.coordinadoresAgrupados.slice(inicio, fin);
   }
 
   get totalPaginas(): number {
-    return Math.ceil(this.coordinadoresFiltrados.length / this.itemsPorPagina);
+    return Math.ceil(this.coordinadoresAgrupados.length / this.itemsPorPagina);
   }
 
   get paginasArray(): number[] {
@@ -612,35 +642,51 @@ export class CoordinadoresComponent implements OnInit {
         const datosExcel: any[] = [];
         const datosLlamadas: any[] = [];
 
-        coordinadores.forEach(coordinador => {
-          // Obtener última llamada
-          const ultimaLlamada = coordinador.llamadas && coordinador.llamadas.length > 0
-            ? coordinador.llamadas.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())[0]
-            : null;
+        // Agrupar por municipio
+        const agrupados = new Map<string, Coordinador[]>();
+        coordinadores.forEach(coord => {
+          const municipio = coord.municipio || 'Sin municipio';
+          if (!agrupados.has(municipio)) {
+            agrupados.set(municipio, []);
+          }
+          agrupados.get(municipio)!.push(coord);
+        });
 
-          // Obtener eventos únicos de las llamadas
-          const eventosLlamadas = coordinador.llamadas
-            ? coordinador.llamadas
-                .filter(llamada => llamada.evento)
-                .map(llamada => llamada.evento?.nombre)
-                .filter((nombre, index, self) => nombre && self.indexOf(nombre) === index)
-                .join(', ')
-            : '-';
+        // Crear datos agrupados por municipio (Hoja 1) - Mostrar municipio con cantidad solo en primera fila
+        Array.from(agrupados.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .forEach(([municipio, coordinadoresMunicipio]) => {
+            coordinadoresMunicipio.forEach((coord, index) => {
+              // Obtener última llamada
+              const ultimaLlamada = coord.llamadas && coord.llamadas.length > 0
+                ? coord.llamadas.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())[0]
+                : null;
 
-          // Agregar fila del defensor con resumen (Hoja 1)
-          datosExcel.push({
-            'Municipio': coordinador.municipio || '-',
-            'Sector': coordinador.sector || '-',
-            'Nombre Completo': coordinador.nombreCompleto,
-            'Cédula': coordinador.cedula || '-',
-            'Celular': coordinador.celular,
-            'Email': coordinador.email || '-',
-            'Número de Llamadas': coordinador.llamadas ? coordinador.llamadas.length : 0,
-            'Última Fecha de Llamada': ultimaLlamada ? this.formatearFecha(ultimaLlamada.fecha) : 'No contactado',
-            'Eventos Asociados': eventosLlamadas
+              // Obtener eventos únicos de las llamadas
+              const eventosLlamadas = coord.llamadas
+                ? coord.llamadas
+                    .filter(llamada => llamada.evento)
+                    .map(llamada => llamada.evento?.nombre)
+                    .filter((nombre, index, self) => nombre && self.indexOf(nombre) === index)
+                    .join(', ')
+                : '-';
+
+              datosExcel.push({
+                'Municipio': index === 0 ? `${municipio} (${coordinadoresMunicipio.length})` : '',
+                'Sector': coord.sector || '-',
+                'Nombre Completo': coord.nombreCompleto,
+                'Cédula': coord.cedula || '-',
+                'Celular': coord.celular,
+                'Email': coord.email || '-',
+                'Número de Llamadas': coord.llamadas ? coord.llamadas.length : 0,
+                'Última Fecha de Llamada': ultimaLlamada ? this.formatearFecha(ultimaLlamada.fecha) : 'No contactado',
+                'Eventos Asociados': eventosLlamadas
+              });
+            });
           });
 
-          // Agregar detalle de llamadas para la segunda hoja
+        // Agregar detalle de llamadas para la segunda hoja
+        coordinadores.forEach(coordinador => {
           if (coordinador.llamadas && coordinador.llamadas.length > 0) {
             coordinador.llamadas.forEach(llamada => {
               datosLlamadas.push({
@@ -672,12 +718,12 @@ export class CoordinadoresComponent implements OnInit {
     // Crear libro de trabajo
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
 
-    // ===== HOJA 1: DEFENSORES (Resumen) =====
+    // ===== HOJA 1: MUNICIPIOS (Resumen agrupado) =====
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(datos);
 
     // Ajustar ancho de columnas para la hoja de defensores
     const colWidths = [
-      { wch: 20 }, // Municipio
+      { wch: 30 }, // Municipio
       { wch: 20 }, // Sector
       { wch: 30 }, // Nombre Completo
       { wch: 15 }, // Cédula
@@ -718,7 +764,7 @@ export class CoordinadoresComponent implements OnInit {
 
         // Determinar alineación según la columna
         let horizontalAlign: "left" | "center" | "right" = "center";
-        if (C === 2 || C === 8) { // Nombre Completo, Eventos Asociados
+        if (C === 0 || C === 2 || C === 8) { // Municipio, Nombre Completo, Eventos Asociados
           horizontalAlign = "left";
         }
 
