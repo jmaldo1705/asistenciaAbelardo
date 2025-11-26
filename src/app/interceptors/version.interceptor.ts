@@ -1,4 +1,4 @@
-import { HttpInterceptorFn } from '@angular/core';
+import { HttpInterceptorFn } from '@angular/common/http';
 
 // Versión de la aplicación - incrementar cada vez que se haga deploy
 const APP_VERSION = '1.0.1';
