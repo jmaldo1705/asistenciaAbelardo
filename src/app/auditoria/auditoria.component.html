@@ -1,0 +1,160 @@
+<div class="event-banner">
+  <div class="banner-content">
+    <div class="banner-images">
+      <img src="assets/abelardo.png" alt="Abelardo Gómez" class="banner-img">
+      <img src="assets/tigre.png" alt="Tigre" class="banner-img">
+      <img src="assets/defensores.png" alt="Defensores" class="banner-img">
+    </div>
+    <h1>AUDITORÍA DEL SISTEMA</h1>
+  </div>
+  <div class="logout-section">
+    <button (click)="logout()" class="btn-logout">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="action-bar">
+    <button class="btn-volver" (click)="volver()">← Volver</button>
+    <button class="btn-actualizar" (click)="cargarAuditoria()">🔄 Actualizar</button>
+  </div>
+
+  <div class="filters-section">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Fecha Inicio:</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="filtros.fechaInicio"
+          class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label>Fecha Fin:</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="filtros.fechaFin"
+          class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label>Entidad:</label>
+        <select [(ngModel)]="filtros.entidad" class="filter-select">
+          <option value="all">Todas</option>
+          <option value="coordinador">Coordinador</option>
+          <option value="evento">Evento</option>
+          <option value="llamada">Llamada</option>
+          <option value="asistencia">Asistencia</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Límite por página:</label>
+        <select [(ngModel)]="tamanioPagina" (change)="paginaActual = 0; cargarAuditoria()" class="filter-select">
+          <option [value]="25">25</option>
+          <option [value]="50">50</option>
+          <option [value]="100">100</option>
+          <option [value]="200">200</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group-search">
+        <label>Buscar:</label>
+        <input 
+          type="text" 
+          [(ngModel)]="filtros.busqueda"
+          (input)="aplicarFiltros()"
+          placeholder="Usuario, detalle, entidad o acción..."
+          class="filter-search">
+      </div>
+
+      <div class="filter-buttons">
+        <button class="btn-aplicar" (click)="cargarAuditoria()">Aplicar Filtros</button>
+        <button class="btn-limpiar" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div *ngIf="cargando" class="loading">
+      Cargando registros...
+    </div>
+
+    <div *ngIf="!cargando && registrosFiltrados.length === 0" class="no-data">
+      No se encontraron registros de auditoría con los filtros seleccionados.
+    </div>
+
+    <table *ngIf="!cargando && registrosFiltrados.length > 0">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Acción</th>
+          <th>Usuario</th>
+          <th>Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let registro of registrosFiltrados">
+          <td>{{ formatearFecha(registro.fecha) }}</td>
+          <td>
+            <span 
+              class="badge"
+              [ngClass]="{
+                'badge-creacion': registro.accion === 'CREACIÓN',
+                'badge-modificacion': registro.accion === 'MODIFICACIÓN',
+                'badge-eliminacion': registro.accion === 'ELIMINACIÓN'
+              }">
+              {{ registro.accion }}
+            </span>
+          </td>
+          <td class="usuario-cell">{{ registro.usuario }}</td>
+          <td class="detalle-cell">{{ registro.detalle }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="!cargando && registrosFiltrados.length > 0" class="results-info">
+      Mostrando {{ registrosFiltrados.length }} de {{ totalElementos }} registros totales
+      (Página {{ paginaActual + 1 }} de {{ totalPaginas }})
+    </div>
+
+    <div *ngIf="!cargando && totalPaginas > 1" class="pagination">
+      <button 
+        class="btn-pagination" 
+        (click)="cambiarPagina(0)" 
+        [disabled]="paginaActual === 0">
+        ⏮ Primera
+      </button>
+      
+      <button 
+        class="btn-pagination" 
+        (click)="cambiarPagina(paginaActual - 1)" 
+        [disabled]="paginaActual === 0">
+        ◀ Anterior
+      </button>
+      
+      <button 
+        *ngFor="let pagina of paginasArray"
+        class="btn-pagination"
+        [class.active]="pagina === paginaActual"
+        (click)="cambiarPagina(pagina)">
+        {{ pagina + 1 }}
+      </button>
+      
+      <button 
+        class="btn-pagination" 
+        (click)="cambiarPagina(paginaActual + 1)" 
+        [disabled]="paginaActual >= totalPaginas - 1">
+        Siguiente ▶
+      </button>
+      
+      <button 
+        class="btn-pagination" 
+        (click)="cambiarPagina(totalPaginas - 1)" 
+        [disabled]="paginaActual >= totalPaginas - 1">
+        Última ⏭
+      </button>
+    </div>
+  </div>
+</div>

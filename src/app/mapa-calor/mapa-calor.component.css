@@ -93,6 +93,17 @@
   font-size: 0.9rem;
 }
 
+.stat-label-small {
+  color: #6b7280;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.info-card {
+  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
 /* Controles del mapa */
 .controles-mapa {
   display: flex;

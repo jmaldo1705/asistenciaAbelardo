@@ -1,0 +1,126 @@
+<div class="container">
+  <!-- Encabezado -->
+  <div class="header">
+    <div class="event-banner">
+      <div class="banner-images">
+        <img src="assets/abelardo.png" alt="Abelardo de la Espriella" class="leader-photo">
+        <div class="event-title-section">
+          <h1>
+            <div class="defensores-logo-banner">
+              <img src="assets/defensores.png" alt="Defensores de la Patria" class="defensores-image-banner">
+            </div>
+          </h1>
+          <p class="event-subtitle">Gestión de Usuarios del Sistema</p>
+        </div>
+        <img src="assets/tigre.png" alt="Tigre" class="tiger-image">
+      </div>
+    </div>
+
+    <div class="logout-section">
+      <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
+        🚪 Cerrar Sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de acciones -->
+  <div class="action-bar">
+    <button class="btn-volver" (click)="volver()">
+      <span class="btn-icon-main">←</span> Volver
+    </button>
+    <button class="btn-nuevo" (click)="abrirModalNuevo()">
+      <span class="btn-icon-main">+</span> Nuevo Usuario
+    </button>
+  </div>
+
+  <div *ngIf="cargando" class="loading">Cargando...</div>
+
+  <!-- Tabla de usuarios -->
+  <div class="table-container" *ngIf="!cargando">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Nombre Completo</th>
+          <th>Email</th>
+          <th>Roles</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let usuario of usuarios">
+          <td>{{ usuario.username }}</td>
+          <td>{{ usuario.nombreCompleto }}</td>
+          <td>{{ usuario.email }}</td>
+          <td>{{ getRolesNombres(usuario) }}</td>
+          <td>
+            <span [class.badge-active]="usuario.activo" [class.badge-inactive]="!usuario.activo">
+              {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+            <span class="badge-blocked" *ngIf="usuario.cuentaBloqueada">Bloqueado</span>
+          </td>
+          <td class="acciones">
+            <button class="btn-icon btn-edit" (click)="abrirModalEditar(usuario)" title="Editar">✏️</button>
+            <button class="btn-icon btn-unlock" *ngIf="usuario.cuentaBloqueada" (click)="desbloquear(usuario.id)" title="Desbloquear">🔓</button>
+            <button class="btn-icon btn-delete" (click)="eliminar(usuario.id, usuario.username)" title="Eliminar">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ modoEdicion ? 'Editar Usuario' : 'Nuevo Usuario' }}</h2>
+      <button class="btn-close" (click)="cerrarModal()">×</button>
+    </div>
+
+    <form (submit)="guardar(); $event.preventDefault()" class="modal-form">
+      <div class="form-group">
+        <label>Username *</label>
+        <input type="text" [(ngModel)]="usuarioForm.username" name="username" required [disabled]="modoEdicion">
+      </div>
+
+      <div class="form-group">
+        <label>Nombre Completo *</label>
+        <input type="text" [(ngModel)]="usuarioForm.nombreCompleto" name="nombreCompleto" required>
+      </div>
+
+      <div class="form-group">
+        <label>Email *</label>
+        <input type="email" [(ngModel)]="usuarioForm.email" name="email" required>
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña {{ modoEdicion ? '(dejar vacío para no cambiar)' : '*' }}</label>
+        <input type="password" [(ngModel)]="usuarioForm.password" name="password" [required]="!modoEdicion">
+      </div>
+
+      <div class="form-group">
+        <label>Rol *</label>
+        <div class="roles-radio">
+          <label *ngFor="let rol of roles" class="radio-label">
+            <input type="radio" name="rol" [value]="rol.id" [(ngModel)]="usuarioForm.rolId" required>
+            {{ rol.nombre }}
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="modoEdicion">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="usuarioForm.activo" name="activo">
+          Usuario Activo
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+        <button type="submit" class="btn-primary">{{ modoEdicion ? 'Actualizar' : 'Crear' }}</button>
+      </div>
+    </form>
+  </div>
+</div>

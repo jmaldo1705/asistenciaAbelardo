@@ -1,44 +1,131 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, tap, BehaviorSubject } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { LoginRequest, LoginResponse, CambiarPasswordRequest } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly STORAGE_KEY = 'auth_token';
-
-  // Credenciales predeterminadas (en producción esto vendría del backend)
-  private usuarios = [
-    { usuario: 'admin', password: 'Ibague2025', nombre: 'Administrador' }
-  ];
+  private http = inject(HttpClient);
+  private readonly API_URL = environment.apiUrl + '/auth';
+  private readonly TOKEN_KEY = 'auth_token';
+  private readonly USER_KEY = 'user_data';
+  
+  private currentUserSubject = new BehaviorSubject<LoginResponse | null>(this.getUserData());
+  public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor() { }
 
-  login(usuario: string, password: string): boolean {
-    const usuarioEncontrado = this.usuarios.find(
-      u => u.usuario === usuario && u.password === password
+  login(credentials: LoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.API_URL}/login`, credentials).pipe(
+      tap(response => {
+        this.setToken(response.token);
+        this.setUserData(response);
+        this.currentUserSubject.next(response);
+      })
     );
+  }
 
-    if (usuarioEncontrado) {
-      // Guardamos un token simple en localStorage
-      const token = btoa(usuario + ':' + new Date().getTime());
-      localStorage.setItem(this.STORAGE_KEY, token);
-      localStorage.setItem('usuario_nombre', usuarioEncontrado.nombre);
-      return true;
-    }
-
-    return false;
+  cambiarPassword(request: CambiarPasswordRequest): Observable<any> {
+    return this.http.post(`${this.API_URL}/cambiar-password`, request);
   }
 
   logout(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
-    localStorage.removeItem('usuario_nombre');
+    this.http.post(`${this.API_URL}/logout`, {}).subscribe({
+      complete: () => {
+        this.clearAuth();
+      },
+      error: () => {
+        // Limpiar de todos modos en caso de error
+        this.clearAuth();
+      }
+    });
+  }
+
+  private clearAuth(): void {
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+    this.currentUserSubject.next(null);
   }
 
   isLoggedIn(): boolean {
-    return localStorage.getItem(this.STORAGE_KEY) !== null;
+    return this.getToken() !== null;
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.TOKEN_KEY);
+  }
+
+  private setToken(token: string): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
+
+  getUserData(): LoginResponse | null {
+    const userData = localStorage.getItem(this.USER_KEY);
+    return userData ? JSON.parse(userData) : null;
+  }
+
+  private setUserData(user: LoginResponse): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
   getNombreUsuario(): string {
-    return localStorage.getItem('usuario_nombre') || 'Usuario';
+    const userData = this.getUserData();
+    return userData?.nombreCompleto || 'Usuario';
+  }
+
+  getUserId(): number | null {
+    const userData = this.getUserData();
+    return userData?.id || null;
+  }
+
+  getRoles(): string[] {
+    const userData = this.getUserData();
+    return userData?.roles || [];
+  }
+
+  hasRole(role: string): boolean {
+    return this.getRoles().includes(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    const userRoles = this.getRoles();
+    return roles.some(role => userRoles.includes(role));
+  }
+
+  isAdmin(): boolean {
+    return this.hasRole('ADMINISTRADOR');
+  }
+
+  isEditor(): boolean {
+    return this.hasRole('EDITOR');
+  }
+
+  isVisor(): boolean {
+    return this.hasRole('VISOR');
+  }
+
+  debeCambiarPassword(): boolean {
+    const userData = this.getUserData();
+    return userData?.debeCambiarPassword || false;
+  }
+
+  canEdit(): boolean {
+    return this.hasAnyRole(['ADMINISTRADOR', 'EDITOR']);
+  }
+
+  canDelete(): boolean {
+    return this.hasAnyRole(['ADMINISTRADOR', 'EDITOR']);
+  }
+
+  canExportExcel(): boolean {
+    return this.hasRole('ADMINISTRADOR');
+  }
+
+  canManageUsers(): boolean {
+    return this.hasRole('ADMINISTRADOR');
   }
 }
+

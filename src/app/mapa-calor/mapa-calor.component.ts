@@ -125,6 +125,8 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       coordinadoresSinCoords: Coordinador[];
     }>();
 
+    console.log(`📊 Procesando ${this.coordinadores.length} coordinadores para el mapa de calor`);
+
     this.coordinadores.forEach(coord => {
       // Priorizar sector con coordenadas para el mapa de calor
       // Si hay sector, usarlo; si no, usar municipio como fallback
@@ -170,6 +172,11 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     this.geocoder = new window.google.maps.Geocoder();
     const ubicacionesArray = Array.from(ubicacionesAgrupadas.entries());
     let procesadas = 0;
+
+    console.log(`📍 Se encontraron ${ubicacionesArray.length} ubicaciones únicas`);
+    ubicacionesArray.forEach(([ubicacion, data]) => {
+      console.log(`  - ${ubicacion}: ${data.coordinadoresConCoords.length + data.coordinadoresSinCoords.length} defensores`);
+    });
 
     if (ubicacionesArray.length === 0) {
       this.cargando = false;
@@ -246,6 +253,9 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       this.toastService.warning('No hay ubicaciones para mostrar');
       return;
     }
+
+    console.log(`🗺️ Inicializando mapa con ${this.ubicacionesUnicas.size} marcadores`);
+    console.log(`📊 Total defensores en el mapa: ${this.totalDefensores}`);
 
     // Calcular el centro del mapa basado en las ubicaciones
     const bounds = new window.google.maps.LatLngBounds();

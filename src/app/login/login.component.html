@@ -53,3 +53,76 @@
     </form>
   </div>
 </div>
+
+<!-- Modal para cambio de contraseña obligatorio -->
+<div class="modal-overlay" *ngIf="mostrarModalCambioPassword">
+  <div class="modal-content modal-password">
+    <div class="modal-header">
+      <h2>Cambio de Contraseña Obligatorio</h2>
+      <p class="modal-subtitle">Debe cambiar su contraseña temporal antes de continuar</p>
+    </div>
+
+    <form (submit)="cambiarPassword(); $event.preventDefault()" class="modal-form">
+      <div class="form-group">
+        <label for="passwordActual">Contraseña Actual</label>
+        <input 
+          type="password" 
+          id="passwordActual"
+          [(ngModel)]="passwordActual" 
+          name="passwordActual"
+          class="form-input"
+          readonly
+          autocomplete="current-password">
+      </div>
+
+      <div class="form-group">
+        <label for="passwordNueva">Nueva Contraseña</label>
+        <input 
+          type="password" 
+          id="passwordNueva"
+          [(ngModel)]="passwordNueva" 
+          name="passwordNueva"
+          class="form-input"
+          placeholder="Mínimo 8 caracteres"
+          [disabled]="cargandoCambioPassword"
+          autocomplete="new-password"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="passwordConfirmacion">Confirmar Nueva Contraseña</label>
+        <input 
+          type="password" 
+          id="passwordConfirmacion"
+          [(ngModel)]="passwordConfirmacion" 
+          name="passwordConfirmacion"
+          class="form-input"
+          placeholder="Repita la nueva contraseña"
+          [disabled]="cargandoCambioPassword"
+          autocomplete="new-password"
+          required>
+      </div>
+
+      <div class="error-message" *ngIf="mensajeCambioPassword">
+        {{ mensajeCambioPassword }}
+      </div>
+
+      <div class="modal-actions">
+        <button 
+          type="button" 
+          class="btn-secondary"
+          (click)="cancelarCambioPassword()"
+          [disabled]="cargandoCambioPassword">
+          Cancelar
+        </button>
+        <button 
+          type="submit" 
+          class="btn-primary"
+          [disabled]="cargandoCambioPassword">
+          <span *ngIf="!cargandoCambioPassword">Cambiar Contraseña</span>
+          <span *ngIf="cargandoCambioPassword">Cambiando...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

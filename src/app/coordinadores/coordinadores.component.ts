@@ -120,7 +120,7 @@ export class CoordinadoresComponent implements OnInit {
 
   constructor(
     private coordinadorService: CoordinadorService,
-    private authService: AuthService,
+    public authService: AuthService,
     private toastService: ToastService,
     private googleMapsService: GoogleMapsService,
     private eventoService: EventoService,
@@ -975,6 +975,14 @@ export class CoordinadoresComponent implements OnInit {
 
   irAEventos(): void {
     this.router.navigate(['/eventos']);
+  }
+
+  irAUsuarios(): void {
+    this.router.navigate(['/usuarios']);
+  }
+
+  irAAuditoria(): void {
+    this.router.navigate(['/auditoria']);
   }
 
   // Funciones de WhatsApp

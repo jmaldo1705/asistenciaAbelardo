@@ -38,7 +38,7 @@
 
   <!-- Botón para agregar nuevo defensor -->
   <div class="action-bar">
-    <button class="btn-nuevo" (click)="abrirModalNuevo()">
+    <button class="btn-nuevo" (click)="abrirModalNuevo()" *ngIf="authService.canEdit()">
       <span class="btn-icon-main">+</span> Agregar Defensor
     </button>
     <button class="btn-eventos" (click)="irAEventos()">
@@ -48,11 +48,17 @@
     <!-- <button class="btn-whatsapp" (click)="abrirModalWhatsAppMasivo()">
       <span class="btn-icon-main">💬</span> Enviar WhatsApp
     </button> -->
-    <button class="btn-exportar" (click)="exportarAExcel()">
+    <button class="btn-exportar" (click)="exportarAExcel()" *ngIf="authService.canExportExcel()">
       <span class="btn-icon-main">↓</span> Exportar a Excel
     </button>
     <button class="btn-mapa" (click)="irAMapaCalor()">
       <span class="btn-icon-main">🗺</span> Ver Mapa de Calor
+    </button>
+    <button class="btn-usuarios" (click)="irAUsuarios()" *ngIf="authService.canManageUsers()">
+      <span class="btn-icon-main">👤</span> Gestionar Usuarios
+    </button>
+    <button class="btn-auditoria" (click)="irAAuditoria()" *ngIf="authService.canManageUsers()">
+      <span class="btn-icon-main">📋</span> Ver Auditoría
     </button>
   </div>
 
@@ -104,16 +110,16 @@
           <td>{{ formatearFecha(coordinador.fechaLlamada) }}</td>
           <td class="actions-cell">
             <div class="actions-buttons-group">
-              <button class="btn-action btn-action-call" (click)="abrirModalRegistrarLlamada(coordinador)" title="Registrar llamada">
+              <button class="btn-action btn-action-call" (click)="abrirModalRegistrarLlamada(coordinador)" title="Registrar llamada" *ngIf="authService.canEdit()">
                 <span class="btn-icon">☎</span>
               </button>
               <button class="btn-action btn-action-view" (click)="verHistorialLlamadas(coordinador)" title="Ver historial">
                 <span class="btn-icon">📋</span>
               </button>
-              <button class="btn-action btn-action-edit" (click)="abrirModalEditar(coordinador)" title="Editar">
+              <button class="btn-action btn-action-edit" (click)="abrirModalEditar(coordinador)" title="Editar" *ngIf="authService.canEdit()">
                 <span class="btn-icon">✎</span>
               </button>
-              <button class="btn-action btn-action-delete" (click)="eliminarCoordinador(coordinador)" title="Eliminar">
+              <button class="btn-action btn-action-delete" (click)="eliminarCoordinador(coordinador)" title="Eliminar" *ngIf="authService.canDelete()">
                 <span class="btn-icon">✕</span>
               </button>
             </div>
