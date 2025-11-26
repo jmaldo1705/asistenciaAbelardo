@@ -1,43 +1,28 @@
-// Service Worker de desinstalación - Este SW elimina todos los caches y se desregistra
+// Service Worker de limpieza - elimina caches y se desregistra sin causar recargas
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker: Iniciando desinstalación');
+  console.log('🔧 SW: Instalando limpieza');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('🧹 Service Worker: Limpiando todos los caches');
+  console.log('🧹 SW: Limpiando caches');
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            console.log('🗑️ Eliminando cache:', cacheName);
+            console.log('🗑️ Eliminando:', cacheName);
             return caches.delete(cacheName);
           })
         );
       })
-      .then(() => {
-        console.log('✅ Todos los caches eliminados');
-        return self.clients.claim();
-      })
-      .then(() => {
-        // Desregistrar este service worker
-        return self.registration.unregister();
-      })
-      .then(() => {
-        console.log('✅ Service Worker desregistrado');
-        // Notificar a todos los clientes para que recarguen
-        return self.clients.matchAll();
-      })
-      .then((clients) => {
-        clients.forEach(client => {
-          client.postMessage({ type: 'SW_UNREGISTERED' });
-        });
-      })
+      .then(() => self.clients.claim())
+      .then(() => self.registration.unregister())
+      .then(() => console.log('✅ SW desregistrado'))
   );
 });
 
-// No cachear nada, siempre ir directo a la red
+// No cachear nada
 self.addEventListener('fetch', (event) => {
   event.respondWith(fetch(event.request));
 });
