@@ -1,38 +1,43 @@
-// Service Worker para forzar actualización de la aplicación
-const CACHE_VERSION = 'v1.0.1';
-const CACHE_NAME = `asistencia-cache-${CACHE_VERSION}`;
-
-// Instalar el service worker y limpiar caches antiguas
+// Service Worker de desinstalación - Este SW elimina todos los caches y se desregistra
 self.addEventListener('install', (event) => {
-  console.log('Service Worker instalado');
-  self.skipWaiting(); // Activar inmediatamente
+  console.log('🔧 Service Worker: Iniciando desinstalación');
+  self.skipWaiting();
 });
 
-// Activar y limpiar caches viejas
 self.addEventListener('activate', (event) => {
+  console.log('🧹 Service Worker: Limpiando todos los caches');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Eliminando cache antigua:', cacheName);
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            console.log('🗑️ Eliminando cache:', cacheName);
             return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      console.log('Service Worker activado');
-      return self.clients.claim(); // Tomar control inmediatamente
-    })
+          })
+        );
+      })
+      .then(() => {
+        console.log('✅ Todos los caches eliminados');
+        return self.clients.claim();
+      })
+      .then(() => {
+        // Desregistrar este service worker
+        return self.registration.unregister();
+      })
+      .then(() => {
+        console.log('✅ Service Worker desregistrado');
+        // Notificar a todos los clientes para que recarguen
+        return self.clients.matchAll();
+      })
+      .then((clients) => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'SW_UNREGISTERED' });
+        });
+      })
   );
 });
 
-// No cachear requests, siempre ir a la red
+// No cachear nada, siempre ir directo a la red
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      // Si falla la red, intentar desde cache
-      return caches.match(event.request);
-    })
-  );
+  event.respondWith(fetch(event.request));
 });
