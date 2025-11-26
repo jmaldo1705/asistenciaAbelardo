@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Auditoria } from '../models/auditoria.model';
+import { environment } from '../../environments/environment';
 
 export interface PageResponse<T> {
   content: T[];
@@ -16,7 +17,7 @@ export interface PageResponse<T> {
 })
 export class AuditoriaService {
   private http = inject(HttpClient);
-  private baseUrl = 'http://localhost:8080/api/auditoria';
+  private baseUrl = `${environment.apiUrl}/auditoria`;
 
   obtenerAuditoria(params?: {
     fechaInicio?: string;

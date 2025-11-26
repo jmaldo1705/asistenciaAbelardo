@@ -128,21 +128,12 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     console.log(`📊 Procesando ${this.coordinadores.length} coordinadores para el mapa de calor`);
 
     this.coordinadores.forEach(coord => {
-      // Priorizar sector con coordenadas para el mapa de calor
-      // Si hay sector, usarlo; si no, usar municipio como fallback
+      // Usar SOLO el municipio para evitar confusión con sectores que no son de Google Maps
       let clave = '';
       let usarCoordenadas = false;
       
-      if (coord.sector && coord.sector.trim() && coord.latitud && coord.longitud) {
-        // Usar sector si tiene coordenadas (preferido para el mapa)
-        clave = `${coord.sector}${coord.municipio ? `, ${coord.municipio}` : ''}`;
-        usarCoordenadas = true;
-      } else if (coord.sector && coord.sector.trim()) {
-        // Sector sin coordenadas, intentar geocodificar
-        clave = `${coord.sector}${coord.municipio ? `, ${coord.municipio}` : ''}`;
-        usarCoordenadas = false;
-      } else if (coord.municipio && coord.municipio.trim() && coord.latitud && coord.longitud) {
-        // Municipio con coordenadas como fallback
+      if (coord.municipio && coord.municipio.trim() && coord.latitud && coord.longitud) {
+        // Municipio con coordenadas
         clave = coord.municipio;
         usarCoordenadas = true;
       } else if (coord.municipio && coord.municipio.trim()) {
@@ -226,11 +217,8 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Si la ubicación ya incluye el municipio (formato "Sector, Municipio"), usar directamente
-    // Si no, agregar "Colombia" para mejorar la precisión
-    const direccion = ubicacion.includes(',') 
-      ? `${ubicacion}, Colombia` 
-      : `${ubicacion}, Colombia`;
+    // Agregar ", Colombia" para mejorar la precisión de geocodificación
+    const direccion = `${ubicacion}, Colombia`;
 
     this.geocoder.geocode({ address: direccion }, (results: any, status: any) => {
       if (status === window.google.maps.GeocoderStatus.OK && results && results[0]) {
