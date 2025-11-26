@@ -300,6 +300,30 @@ tbody tr:hover {
   word-wrap: break-word;
 }
 
+.detalle-modificacion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detalle-titulo {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.detalle-cambios {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.detalle-cambios::ng-deep .arrow {
+  color: #3b82f6;
+  font-weight: bold;
+  padding: 0 0.3rem;
+}
+
 .results-info {
   margin-top: 1rem;
   text-align: center;

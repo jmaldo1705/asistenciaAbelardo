@@ -133,6 +133,31 @@ export class AuditoriaComponent implements OnInit {
     });
   }
 
+  formatearDetalle(detalle: string, accion: string): string {
+    if (accion === 'MODIFICACIÓN' && detalle.includes('Cambios:')) {
+      // Extraer solo los cambios sin el prefijo
+      const partes = detalle.split('Cambios:');
+      if (partes.length > 1) {
+        const cambios = partes[1].trim();
+        // Resaltar las flechas de cambio
+        return cambios.replace(/→/g, '<span class="arrow">→</span>');
+      }
+    }
+    return detalle;
+  }
+
+  getTitulo(detalle: string, accion: string): string {
+    if (accion === 'MODIFICACIÓN' && detalle.includes(' - Cambios:')) {
+      const partes = detalle.split(' - Cambios:');
+      return partes[0];
+    }
+    if (detalle.includes(': ')) {
+      const partes = detalle.split(': ');
+      return partes[0] + ':';
+    }
+    return '';
+  }
+
   volver() {
     this.router.navigate(['/coordinadores']);
   }

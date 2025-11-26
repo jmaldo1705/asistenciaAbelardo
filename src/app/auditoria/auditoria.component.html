@@ -109,7 +109,13 @@
             </span>
           </td>
           <td class="usuario-cell">{{ registro.usuario }}</td>
-          <td class="detalle-cell">{{ registro.detalle }}</td>
+          <td class="detalle-cell">
+            <div *ngIf="registro.accion === 'MODIFICACIÓN' && registro.detalle.includes('Cambios:')" class="detalle-modificacion">
+              <div class="detalle-titulo">{{ getTitulo(registro.detalle, registro.accion) }}</div>
+              <div class="detalle-cambios" [innerHTML]="formatearDetalle(registro.detalle, registro.accion)"></div>
+            </div>
+            <div *ngIf="registro.accion !== 'MODIFICACIÓN' || !registro.detalle.includes('Cambios:')">{{ registro.detalle }}</div>
+          </td>
         </tr>
       </tbody>
     </table>
