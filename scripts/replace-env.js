@@ -12,9 +12,9 @@ const googleMapsApiKey = process.env.NG_APP_GOOGLE_MAPS_API_KEY || '';
 // Leer el archivo
 let content = fs.readFileSync(envProdPath, 'utf8');
 
-// Reemplazar el placeholder con la variable de entorno real
+// Reemplazar el valor de googleMapsApiKey (ya sea placeholder o cadena vacía)
 content = content.replace(
-  /googleMapsApiKey:\s*'GOOGLE_MAPS_API_KEY_PLACEHOLDER'/,
+  /googleMapsApiKey:\s*'[^']*'/,
   `googleMapsApiKey: '${googleMapsApiKey}'`
 );
 
