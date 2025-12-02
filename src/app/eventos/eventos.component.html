@@ -66,10 +66,28 @@
           <input [(ngModel)]="eventoActual.nombre" type="text" class="form-control" placeholder="Ej: Reunión Regional">
         </div>
 
-        <div class="form-group">
-          <label>Lugar *</label>
-          <input [(ngModel)]="eventoActual.lugar" type="text" class="form-control"
-            placeholder="Ej: Barranquilla, Atlántico">
+        <div class="form-group autocomplete-container">
+          <label>Lugar * 📍</label>
+          <input [(ngModel)]="eventoActual.lugar" 
+            (input)="buscarLugar($event)"
+            type="text" 
+            class="form-control"
+            placeholder="Buscar dirección, establecimiento, ciudad..."
+            autocomplete="off">
+          <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasLugar">
+            <div class="suggestion-item suggestion-detailed" *ngFor="let sugerencia of lugarSugerencias"
+              (click)="seleccionarLugar(sugerencia)">
+              <span class="suggestion-icon">📍</span>
+              <div class="suggestion-content">
+                <span class="suggestion-name">{{ sugerencia.structured_formatting?.main_text || sugerencia.description.split(',')[0] }}</span>
+                <span class="suggestion-address">{{ sugerencia.structured_formatting?.secondary_text || sugerencia.description }}</span>
+                <span class="suggestion-type" *ngIf="sugerencia.types?.length">{{ getPlaceTypeLabel(sugerencia.types[0]) }}</span>
+              </div>
+            </div>
+          </div>
+          <small class="form-hint location-hint" *ngIf="lugarSeleccionadoDeLista && eventoActual.lugar">
+            ✅ Ubicación con coordenadas guardadas
+          </small>
         </div>
 
         <div class="form-group">

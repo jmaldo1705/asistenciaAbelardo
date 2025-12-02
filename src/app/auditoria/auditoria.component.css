@@ -379,6 +379,47 @@ tbody tr:hover {
   .detalle-cell {
     max-width: 250px;
   }
+
+  .filter-group,
+  .filter-group-search {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 200px;
+  }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    padding: 0 15px;
+  }
+
+  .event-banner {
+    padding: 1.5rem;
+  }
+
+  .event-banner h1 {
+    font-size: 1.6rem;
+  }
+
+  .banner-img {
+    height: 50px;
+  }
+
+  .filters-section {
+    padding: 1.25rem;
+  }
+
+  .filter-row {
+    gap: 0.75rem;
+  }
+
+  table {
+    font-size: 0.9rem;
+  }
+
+  th, td {
+    padding: 0.875rem 0.75rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -404,8 +445,20 @@ tbody tr:hover {
     flex-direction: column;
   }
 
+  .btn-volver,
+  .btn-actualizar {
+    width: 100%;
+    justify-content: center;
+  }
+
   .filter-row {
     flex-direction: column;
+  }
+
+  .filter-group,
+  .filter-group-search {
+    width: 100%;
+    min-width: auto;
   }
 
   .filter-buttons {
@@ -417,8 +470,14 @@ tbody tr:hover {
     flex: 1;
   }
 
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   table {
     font-size: 0.85rem;
+    min-width: 700px;
   }
 
   th,
@@ -428,5 +487,29 @@ tbody tr:hover {
 
   .detalle-cell {
     max-width: 150px;
+  }
+
+  .pagination {
+    gap: 4px;
+  }
+
+  .btn-pagination {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Pantallas con altura reducida */
+@media (max-height: 700px) {
+  .filters-section {
+    padding: 1rem;
+  }
+
+  .filter-row {
+    margin-bottom: 0.75rem;
+  }
+
+  .table-container {
+    padding: 1rem;
   }
 }

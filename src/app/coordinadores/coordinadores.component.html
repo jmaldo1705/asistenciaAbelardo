@@ -205,21 +205,28 @@
       </div>
 
       <div class="form-group autocomplete-container">
-        <label>Sector 🏘️</label>
+        <label>Sector / Dirección 🏘️</label>
         <input type="text" [(ngModel)]="nuevoCoordinador.sector" (input)="buscarSectores($event)"
           class="form-control" 
           [disabled]="!nuevoCoordinador.municipio || !nuevoCoordinador.municipio.trim()"
-          placeholder="{{ nuevoCoordinador.municipio ? 'Escribe para buscar sector, vereda o corregimiento (opcional)...' : 'Primero seleccione un municipio' }}" 
+          placeholder="{{ nuevoCoordinador.municipio ? 'Buscar dirección, barrio, establecimiento, vereda...' : 'Primero seleccione un municipio' }}" 
           autocomplete="off">
         <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasSector">
-          <div class="suggestion-item" *ngFor="let sugerencia of sectorSugerencias"
+          <div class="suggestion-item suggestion-detailed" *ngFor="let sugerencia of sectorSugerencias"
             (click)="seleccionarSector(sugerencia)">
             <span class="suggestion-icon">📍</span>
-            <span class="suggestion-text">{{ sugerencia.description }}</span>
+            <div class="suggestion-content">
+              <span class="suggestion-name">{{ sugerencia.structured_formatting?.main_text || sugerencia.description.split(',')[0] }}</span>
+              <span class="suggestion-address">{{ sugerencia.structured_formatting?.secondary_text || sugerencia.description }}</span>
+              <span class="suggestion-type" *ngIf="sugerencia.types?.length">{{ getPlaceTypeLabel(sugerencia.types[0]) }}</span>
+            </div>
           </div>
         </div>
         <small class="form-hint" *ngIf="!nuevoCoordinador.municipio || !nuevoCoordinador.municipio.trim()">
-          ⚠️ Debe seleccionar un municipio primero para buscar sectores
+          ⚠️ Debe seleccionar un municipio primero para buscar ubicaciones
+        </small>
+        <small class="form-hint location-hint" *ngIf="sectorSeleccionadoDeLista && nuevoCoordinador.sector">
+          ✅ Ubicación seleccionada - Coordenadas guardadas
         </small>
       </div>
 
@@ -319,21 +326,28 @@
       </div>
 
       <div class="form-group autocomplete-container">
-        <label>Sector 🏘️</label>
+        <label>Sector / Dirección 🏘️</label>
         <input type="text" [(ngModel)]="coordinadorEditando.sector" (input)="buscarSectoresEditar($event)"
           class="form-control" 
           [disabled]="!coordinadorEditando.municipio || !coordinadorEditando.municipio.trim()"
-          placeholder="{{ coordinadorEditando.municipio ? 'Escribe para buscar sector, vereda o corregimiento (opcional)...' : 'Primero seleccione un municipio' }}" 
+          placeholder="{{ coordinadorEditando.municipio ? 'Buscar dirección, barrio, establecimiento, vereda...' : 'Primero seleccione un municipio' }}" 
           autocomplete="off">
         <div class="autocomplete-suggestions" *ngIf="mostrandoSugerenciasSectorEditar">
-          <div class="suggestion-item" *ngFor="let sugerencia of sectorSugerenciasEditar"
+          <div class="suggestion-item suggestion-detailed" *ngFor="let sugerencia of sectorSugerenciasEditar"
             (click)="seleccionarSectorEditar(sugerencia)">
             <span class="suggestion-icon">📍</span>
-            <span class="suggestion-text">{{ sugerencia.description }}</span>
+            <div class="suggestion-content">
+              <span class="suggestion-name">{{ sugerencia.structured_formatting?.main_text || sugerencia.description.split(',')[0] }}</span>
+              <span class="suggestion-address">{{ sugerencia.structured_formatting?.secondary_text || sugerencia.description }}</span>
+              <span class="suggestion-type" *ngIf="sugerencia.types?.length">{{ getPlaceTypeLabel(sugerencia.types[0]) }}</span>
+            </div>
           </div>
         </div>
         <small class="form-hint" *ngIf="!coordinadorEditando.municipio || !coordinadorEditando.municipio.trim()">
-          ⚠️ Debe seleccionar un municipio primero para buscar sectores
+          ⚠️ Debe seleccionar un municipio primero para buscar ubicaciones
+        </small>
+        <small class="form-hint location-hint" *ngIf="sectorSeleccionadoDeListaEditar && coordinadorEditando.sector">
+          ✅ Ubicación seleccionada - Coordenadas guardadas
         </small>
       </div>
 

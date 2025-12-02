@@ -47,6 +47,59 @@
           </option>
         </select>
       </div>
+
+      <!-- Filtro por ubicación (Municipio o Sector) -->
+      <div class="filtro-ubicacion">
+        <label>Filtrar por:</label>
+        <div class="filtro-tipo-btns">
+          <button 
+            class="btn-tipo-filtro" 
+            [class.activo]="tipoFiltroUbicacion === 'municipio'"
+            (click)="tipoFiltroUbicacion = 'municipio'; cambiarTipoFiltroUbicacion()">
+            🏙️ Municipio
+          </button>
+          <button 
+            class="btn-tipo-filtro" 
+            [class.activo]="tipoFiltroUbicacion === 'sector'"
+            (click)="tipoFiltroUbicacion = 'sector'; cambiarTipoFiltroUbicacion()">
+            📍 Sector
+          </button>
+        </div>
+      </div>
+
+      <!-- Select de municipio -->
+      <div class="filtro-select" *ngIf="tipoFiltroUbicacion === 'municipio'">
+        <label for="filtro-municipio-select">Municipio:</label>
+        <select
+          id="filtro-municipio-select"
+          [(ngModel)]="municipioSeleccionado"
+          (ngModelChange)="filtrarPorMunicipio()"
+          class="select-evento">
+          <option [ngValue]="null">-- Todos los municipios --</option>
+          <option *ngFor="let mun of municipiosUnicos" [ngValue]="mun">
+            {{ mun }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Select de sector -->
+      <div class="filtro-select" *ngIf="tipoFiltroUbicacion === 'sector'">
+        <label for="filtro-sector-select">Sector:</label>
+        <select
+          id="filtro-sector-select"
+          [(ngModel)]="sectorSeleccionado"
+          (ngModelChange)="filtrarPorSector()"
+          class="select-evento">
+          <option [ngValue]="null">-- Todos los sectores --</option>
+          <option *ngFor="let sec of sectoresUnicos" [ngValue]="sec.sector + '|' + sec.municipio">
+            {{ sec.sector }} ({{ sec.municipio }})
+          </option>
+        </select>
+        <small class="filtro-hint" *ngIf="sectoresUnicos.length === 0">
+          ⚠️ Solo se muestran sectores con coordenadas de Google Maps
+        </small>
+      </div>
+
       <button class="btn-control" (click)="toggleHeatmap()" title="Mostrar/Ocultar círculos de calor">
         <span class="btn-icon-control">{{ mostrarCirculos ? '👁️' : '🔥' }}</span>
         {{ mostrarCirculos ? 'Ocultar' : 'Mostrar' }} Círculos

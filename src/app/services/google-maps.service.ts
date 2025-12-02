@@ -2,6 +2,22 @@ import { Injectable } from '@angular/core';
 
 declare var google: any;
 
+export interface PlaceDetails {
+  name: string;
+  formattedAddress: string;
+  lat: number;
+  lng: number;
+  placeId: string;
+  types: string[];
+  streetNumber?: string;
+  route?: string;
+  neighborhood?: string;
+  locality?: string;
+  administrativeArea?: string;
+  country?: string;
+  postalCode?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -163,5 +179,141 @@ export class GoogleMapsService {
       });
     });
   }
-}
 
+  /**
+   * Busca direcciones exactas, establecimientos y lugares específicos
+   * Incluye calles, negocios, puntos de interés, etc.
+   */
+  async getAddressSuggestions(input: string, countryCode: string = 'CO', nearLocation?: { lat: number, lng: number }): Promise<any[]> {
+    await this.waitForGoogleMapsToLoad();
+    
+    if (!input || input.length < 3) {
+      return Promise.resolve([]);
+    }
+
+    return new Promise((resolve, reject) => {
+      const request: any = {
+        input: input,
+        componentRestrictions: { country: countryCode },
+        // Incluir todos los tipos de lugares para búsqueda completa
+        types: ['establishment', 'geocode']
+      };
+
+      // Si hay una ubicación cercana, priorizar resultados cerca de esa ubicación
+      if (nearLocation) {
+        request.location = new google.maps.LatLng(nearLocation.lat, nearLocation.lng);
+        request.radius = 50000; // 50km de radio
+      }
+
+      this.autocompleteService.getPlacePredictions(request, (predictions: any, status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          resolve(predictions);
+        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+          resolve([]);
+        } else {
+          reject(status);
+        }
+      });
+    });
+  }
+
+  /**
+   * Obtiene los detalles completos de un lugar incluyendo dirección formateada,
+   * componentes de dirección, coordenadas y más
+   */
+  async getPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
+    await this.waitForGoogleMapsToLoad();
+    
+    return new Promise((resolve, reject) => {
+      if (!this.placesService) {
+        const map = new google.maps.Map(document.createElement('div'));
+        this.placesService = new google.maps.places.PlacesService(map);
+      }
+
+      const request = {
+        placeId: placeId,
+        fields: [
+          'name',
+          'formatted_address',
+          'geometry',
+          'address_components',
+          'types',
+          'place_id'
+        ]
+      };
+
+      this.placesService.getDetails(request, (place: any, status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+          const details: PlaceDetails = {
+            name: place.name || '',
+            formattedAddress: place.formatted_address || '',
+            lat: place.geometry?.location?.lat() || 0,
+            lng: place.geometry?.location?.lng() || 0,
+            placeId: place.place_id || placeId,
+            types: place.types || []
+          };
+
+          // Extraer componentes de la dirección
+          if (place.address_components) {
+            for (const component of place.address_components) {
+              const types = component.types;
+              if (types.includes('street_number')) {
+                details.streetNumber = component.long_name;
+              } else if (types.includes('route')) {
+                details.route = component.long_name;
+              } else if (types.includes('neighborhood') || types.includes('sublocality_level_1')) {
+                details.neighborhood = component.long_name;
+              } else if (types.includes('locality')) {
+                details.locality = component.long_name;
+              } else if (types.includes('administrative_area_level_1')) {
+                details.administrativeArea = component.long_name;
+              } else if (types.includes('country')) {
+                details.country = component.long_name;
+              } else if (types.includes('postal_code')) {
+                details.postalCode = component.long_name;
+              }
+            }
+          }
+
+          resolve(details);
+        } else {
+          console.error('Error al obtener detalles del lugar:', status);
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  /**
+   * Formatea la dirección para mostrar de manera legible
+   */
+  formatAddressForDisplay(details: PlaceDetails): string {
+    const parts: string[] = [];
+    
+    // Si tiene nombre de establecimiento, incluirlo
+    if (details.name && details.name !== details.route) {
+      parts.push(details.name);
+    }
+    
+    // Dirección de calle
+    if (details.route) {
+      let streetAddress = details.route;
+      if (details.streetNumber) {
+        streetAddress = `${details.route} #${details.streetNumber}`;
+      }
+      parts.push(streetAddress);
+    }
+    
+    // Barrio/Sector
+    if (details.neighborhood) {
+      parts.push(details.neighborhood);
+    }
+    
+    // Ciudad
+    if (details.locality) {
+      parts.push(details.locality);
+    }
+    
+    return parts.join(', ') || details.formattedAddress;
+  }
+}

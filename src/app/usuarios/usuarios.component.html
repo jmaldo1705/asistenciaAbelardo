@@ -81,8 +81,8 @@
 
     <form (submit)="guardar(); $event.preventDefault()" class="modal-form">
       <div class="form-group">
-        <label>Username *</label>
-        <input type="text" [(ngModel)]="usuarioForm.username" name="username" required [disabled]="modoEdicion">
+        <label>Username * <small>(mín. 3 caracteres)</small></label>
+        <input type="text" [(ngModel)]="usuarioForm.username" name="username" required [disabled]="modoEdicion" minlength="3" maxlength="50">
       </div>
 
       <div class="form-group">
@@ -96,8 +96,8 @@
       </div>
 
       <div class="form-group">
-        <label>Contraseña {{ modoEdicion ? '(dejar vacío para no cambiar)' : '*' }}</label>
-        <input type="password" [(ngModel)]="usuarioForm.password" name="password" [required]="!modoEdicion">
+        <label>Contraseña {{ modoEdicion ? '(dejar vacío para no cambiar)' : '*' }} <small>(mín. 6 caracteres)</small></label>
+        <input type="password" [(ngModel)]="usuarioForm.password" name="password" [required]="!modoEdicion" minlength="6">
       </div>
 
       <div class="form-group">

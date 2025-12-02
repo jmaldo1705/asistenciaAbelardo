@@ -424,7 +424,8 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 10px;
+  box-sizing: border-box;
   animation: fadeIn 0.3s ease;
 }
 
@@ -443,6 +444,11 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
   max-width: 500px;
+  max-height: calc(100vh - 20px);
+  max-height: calc(100dvh - 20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   animation: slideInScale 0.3s ease;
 }
 
@@ -460,6 +466,7 @@
 .modal-header {
   padding: 30px 30px 20px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -477,6 +484,9 @@
 
 .modal-form {
   padding: 25px 30px 30px;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-actions {
@@ -494,6 +504,7 @@
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 48px;
 }
 
 .btn-primary {
@@ -522,29 +533,95 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 576px) {
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
   .modal-content {
-    max-width: 100%;
+    max-width: 480px;
   }
 
   .modal-header {
-    padding: 20px 20px 15px;
-  }
-
-  .modal-header h2 {
-    font-size: 1.25rem;
+    padding: 24px 24px 18px;
   }
 
   .modal-form {
-    padding: 20px;
+    padding: 20px 24px 24px;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-start;
+    padding-top: 30px;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    max-height: calc(100vh - 60px);
+    max-height: calc(100dvh - 60px);
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 16px 18px 14px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .modal-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .modal-form {
+    padding: 16px 18px 18px;
   }
 
   .modal-actions {
     flex-direction: column;
+    gap: 10px;
   }
 
   .modal-actions button {
     width: 100%;
+  }
+
+  .form-input {
+    font-size: 16px;
+  }
+}
+
+/* Pantallas con altura reducida */
+@media (max-height: 650px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding-top: 15px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 30px);
+    max-height: calc(100dvh - 30px);
+  }
+
+  .modal-header {
+    padding: 16px 20px 12px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .modal-form {
+    padding: 14px 20px 18px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .modal-actions {
+    margin-top: 18px;
   }
 }
 

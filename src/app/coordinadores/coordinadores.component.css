@@ -1076,6 +1076,8 @@ tbody tr:hover {
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.3s;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {
@@ -1092,8 +1094,13 @@ tbody tr:hover {
   border-radius: 16px;
   width: 90%;
   max-width: 500px;
+  max-height: calc(100vh - 20px);
+  max-height: calc(100dvh - 20px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -1138,6 +1145,9 @@ tbody tr:hover {
 
 .modal-body {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-info {
@@ -1466,29 +1476,59 @@ tbody tr:hover {
   }
 
   /* Modal responsive */
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
   .modal-content {
-    width: 95%;
-    max-width: 95%;
-    margin: 10px;
-    max-height: 90vh;
-    overflow-y: auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+    flex-shrink: 0;
   }
 
   .modal-header h2 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
   }
 
-  .modal-body,
-  .modal-footer {
-    padding: 15px;
+  .close-btn {
+    font-size: 1.4rem;
+    padding: 4px 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+    overflow-y: auto;
+    flex: 1;
+    max-height: none;
   }
 
   .modal-footer {
+    padding: 14px 16px;
     flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
   }
 
   .modal-footer .btn {
     width: 100%;
+    padding: 14px 16px;
+    font-size: 1rem;
+    min-height: 48px;
   }
 
   /* PaginaciÃ³n responsive */
@@ -1537,6 +1577,32 @@ tbody tr:hover {
     width: 150px;
     height: 150px;
   }
+
+  /* Modal para tablets */
+  .modal-content {
+    width: 85%;
+    max-width: 550px;
+    max-height: calc(100vh - 60px);
+  }
+
+  .modal-large {
+    max-width: 90%;
+  }
+
+  .action-bar {
+    flex-wrap: wrap;
+  }
+
+  .btn-nuevo,
+  .btn-exportar,
+  .btn-mapa,
+  .btn-usuarios,
+  .btn-auditoria,
+  .btn-whatsapp,
+  .btn-eventos {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 180px;
+  }
 }
 
 /* Pantallas pequeÃ±as (telÃ©fonos en horizontal) */
@@ -1576,6 +1642,169 @@ tbody tr:hover {
 
   .stat-label {
     font-size: 0.8rem;
+  }
+}
+
+/* Pantallas con altura reducida (laptops pequeños, tablets en landscape) */
+@media (max-height: 700px) {
+  .event-banner {
+    padding: 25px 20px;
+    margin-bottom: 20px;
+  }
+
+  .leader-photo,
+  .tiger-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .event-banner h1 {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+  }
+
+  .event-subtitle {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  .event-details {
+    gap: 15px;
+    margin-bottom: 10px;
+  }
+
+  .stats-cards {
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .filters {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 30px);
+    max-height: calc(100dvh - 30px);
+  }
+
+  .modal-header {
+    padding: 14px 18px;
+  }
+
+  .modal-body {
+    padding: 14px 18px;
+  }
+
+  .modal-footer {
+    padding: 14px 18px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    margin-bottom: 5px;
+  }
+}
+
+/* Pantallas muy bajas en altura */
+@media (max-height: 600px) {
+  .event-banner {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .banner-images {
+    gap: 15px;
+  }
+
+  .leader-photo,
+  .tiger-image {
+    width: 80px;
+    height: 80px;
+  }
+
+  .event-banner h1 {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+  }
+
+  .defensores-image-banner {
+    max-width: 200px;
+  }
+
+  .event-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .stats-cards {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .stat-icon {
+    font-size: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal-header {
+    padding: 10px 14px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 10px 14px;
+  }
+
+  .modal-footer {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .form-control {
+    padding: 8px 10px;
+  }
+
+  textarea.form-control {
+    min-height: 50px;
   }
 }
 
@@ -1643,7 +1872,27 @@ tbody tr:hover {
 /* Modal grande para historial */
 .modal-large {
   max-width: 800px;
-  width: 90%;
+  width: 95%;
+}
+
+/* Responsive para modal grande */
+@media (max-width: 900px) {
+  .modal-large {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-large {
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+  }
+
+  .modal-large .llamadas-list {
+    max-height: calc(100vh - 300px);
+    max-height: calc(100dvh - 300px);
+  }
 }
 
 /* Estilos para el historial de llamadas */
@@ -1761,6 +2010,57 @@ tbody tr:hover {
   flex-grow: 1;
 }
 
+/* Estilos para sugerencias de lugares detalladas */
+.suggestion-detailed {
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 14px 16px;
+}
+
+.suggestion-detailed .suggestion-icon {
+  margin-top: 2px;
+}
+
+.suggestion-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.suggestion-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-address {
+  font-size: 0.85rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-type {
+  font-size: 0.75rem;
+  color: #059669;
+  background-color: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  width: fit-content;
+  margin-top: 2px;
+}
+
+.location-hint {
+  color: #059669 !important;
+  font-weight: 500;
+}
+
 .form-hint {
   font-size: 0.85rem;
   color: #9ca3af;
@@ -1782,6 +2082,23 @@ tbody tr:hover {
 /* Estilos para modal de WhatsApp */
 .modal-whatsapp {
   max-width: 700px;
+}
+
+/* Responsive para modal WhatsApp */
+@media (max-width: 768px) {
+  .modal-whatsapp {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .modal-whatsapp .defensores-list {
+    max-height: 200px;
+  }
+
+  .modal-whatsapp .preview-message {
+    max-height: 150px;
+    overflow-y: auto;
+  }
 }
 
 .defensores-seleccion-header {

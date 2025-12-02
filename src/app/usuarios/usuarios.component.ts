@@ -98,6 +98,32 @@ export class UsuariosComponent implements OnInit {
   }
 
   guardar(): void {
+    // Validaciones
+    if (!this.usuarioForm.username || this.usuarioForm.username.trim().length < 3) {
+      this.toastService.show('El username debe tener al menos 3 caracteres', 'error');
+      return;
+    }
+
+    if (!this.usuarioForm.nombreCompleto || this.usuarioForm.nombreCompleto.trim() === '') {
+      this.toastService.show('El nombre completo es obligatorio', 'error');
+      return;
+    }
+
+    if (!this.usuarioForm.email || !this.usuarioForm.email.includes('@')) {
+      this.toastService.show('Debe ingresar un email válido', 'error');
+      return;
+    }
+
+    if (!this.modoEdicion && (!this.usuarioForm.password || this.usuarioForm.password.length < 6)) {
+      this.toastService.show('La contraseña debe tener al menos 6 caracteres', 'error');
+      return;
+    }
+
+    if (this.modoEdicion && this.usuarioForm.password && this.usuarioForm.password.length > 0 && this.usuarioForm.password.length < 6) {
+      this.toastService.show('La contraseña debe tener al menos 6 caracteres', 'error');
+      return;
+    }
+
     if (!this.usuarioForm.rolId) {
       this.toastService.show('Debe seleccionar un rol', 'error');
       return;

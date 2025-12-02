@@ -6,5 +6,5 @@ export const environment = {
   apiUrl: 'https://asistenciaabelardoback-production.up.railway.app/api',
   // Esta variable será reemplazada por el script build:env:prod
   // Si no está configurada, quedará como string vacío
-  googleMapsApiKey: 'GOOGLE_MAPS_API_KEY_PLACEHOLDER'
+  googleMapsApiKey: ''
 };

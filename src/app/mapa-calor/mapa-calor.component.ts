@@ -43,6 +43,13 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
   eventos: Evento[] = [];
   eventoSeleccionadoId: number | null = null;
   todosLosCoordinadores: Coordinador[] = [];
+  
+  // Filtros por ubicación
+  tipoFiltroUbicacion: 'municipio' | 'sector' = 'municipio';
+  municipiosUnicos: string[] = [];
+  sectoresUnicos: { sector: string; municipio: string; lat?: number; lng?: number }[] = [];
+  municipioSeleccionado: string | null = null;
+  sectorSeleccionado: string | null = null;
 
   constructor(
     private coordinadorService: CoordinadorService,
@@ -108,6 +115,7 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     this.coordinadorService.obtenerTodos().subscribe({
       next: (data) => {
         this.todosLosCoordinadores = data;
+        this.extraerUbicacionesUnicas();
         this.aplicarFiltros();
       },
       error: (error) => {
@@ -118,6 +126,56 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Extraer municipios y sectores únicos para los filtros
+  extraerUbicacionesUnicas(): void {
+    const municipiosSet = new Set<string>();
+    const sectoresMap = new Map<string, { sector: string; municipio: string; lat?: number; lng?: number }>();
+
+    this.todosLosCoordinadores.forEach(coord => {
+      // Agregar municipio
+      if (coord.municipio && coord.municipio.trim()) {
+        municipiosSet.add(coord.municipio.trim());
+      }
+
+      // Agregar sector si tiene coordenadas (para poder ubicarlo en el mapa)
+      if (coord.sector && coord.sector.trim() && coord.latitud && coord.longitud) {
+        const sectorKey = `${coord.sector.trim()}|${coord.municipio?.trim() || ''}`;
+        if (!sectoresMap.has(sectorKey)) {
+          sectoresMap.set(sectorKey, {
+            sector: coord.sector.trim(),
+            municipio: coord.municipio?.trim() || '',
+            lat: coord.latitud,
+            lng: coord.longitud
+          });
+        }
+      }
+    });
+
+    this.municipiosUnicos = Array.from(municipiosSet).sort();
+    this.sectoresUnicos = Array.from(sectoresMap.values()).sort((a, b) => 
+      `${a.municipio} - ${a.sector}`.localeCompare(`${b.municipio} - ${b.sector}`)
+    );
+
+    console.log(`📊 Municipios únicos: ${this.municipiosUnicos.length}, Sectores con coordenadas: ${this.sectoresUnicos.length}`);
+  }
+
+  // Cambiar tipo de filtro de ubicación
+  cambiarTipoFiltroUbicacion(): void {
+    this.municipioSeleccionado = null;
+    this.sectorSeleccionado = null;
+    this.aplicarFiltros();
+  }
+
+  // Filtrar por municipio seleccionado
+  filtrarPorMunicipio(): void {
+    this.aplicarFiltros();
+  }
+
+  // Filtrar por sector seleccionado
+  filtrarPorSector(): void {
+    this.aplicarFiltros();
+  }
+
   procesarUbicaciones(): void {
     // Agrupar coordinadores por ubicación
     const ubicacionesAgrupadas = new Map<string, {
@@ -126,23 +184,37 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     }>();
 
     console.log(`📊 Procesando ${this.coordinadores.length} coordinadores para el mapa de calor`);
+    console.log(`📍 Tipo de filtro: ${this.tipoFiltroUbicacion}`);
 
     this.coordinadores.forEach(coord => {
-      // Usar SOLO el municipio para evitar confusión con sectores que no son de Google Maps
       let clave = '';
       let usarCoordenadas = false;
       
-      if (coord.municipio && coord.municipio.trim() && coord.latitud && coord.longitud) {
-        // Municipio con coordenadas
-        clave = coord.municipio;
-        usarCoordenadas = true;
-      } else if (coord.municipio && coord.municipio.trim()) {
-        // Municipio sin coordenadas
-        clave = coord.municipio;
-        usarCoordenadas = false;
+      // Si estamos filtrando por sector, agrupar por sector
+      if (this.tipoFiltroUbicacion === 'sector' && this.sectorSeleccionado) {
+        // Agrupar por sector específico
+        if (coord.sector && coord.sector.trim() && coord.latitud && coord.longitud) {
+          clave = `${coord.sector}, ${coord.municipio || ''}`;
+          usarCoordenadas = true;
+        } else if (coord.sector && coord.sector.trim()) {
+          clave = `${coord.sector}, ${coord.municipio || ''}`;
+          usarCoordenadas = false;
+        } else {
+          clave = coord.municipio || 'Sin ubicación';
+          usarCoordenadas = !!(coord.latitud && coord.longitud);
+        }
       } else {
-        clave = 'Sin ubicación';
-        usarCoordenadas = false;
+        // Agrupar por municipio (comportamiento original)
+        if (coord.municipio && coord.municipio.trim() && coord.latitud && coord.longitud) {
+          clave = coord.municipio;
+          usarCoordenadas = true;
+        } else if (coord.municipio && coord.municipio.trim()) {
+          clave = coord.municipio;
+          usarCoordenadas = false;
+        } else {
+          clave = 'Sin ubicación';
+          usarCoordenadas = false;
+        }
       }
 
       const existing = ubicacionesAgrupadas.get(clave) || {
@@ -235,7 +307,7 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     });
   }
 
-  inicializarMapa(): void {
+  inicializarMapa(centerLat?: number, centerLng?: number, zoomLevel?: number): void {
     if (this.ubicacionesUnicas.size === 0) {
       this.cargando = false;
       this.toastService.warning('No hay ubicaciones para mostrar');
@@ -253,10 +325,15 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       bounds.extend(latLng);
     });
 
-    // Crear el mapa centrado en Colombia
+    // Determinar centro y zoom
+    const defaultCenter = { lat: 4.570868, lng: -74.297333 }; // Centro de Colombia
+    const center = (centerLat && centerLng) ? { lat: centerLat, lng: centerLng } : defaultCenter;
+    const zoom = zoomLevel || 6;
+
+    // Crear el mapa
     const mapOptions = {
-      zoom: 6,
-      center: { lat: 4.570868, lng: -74.297333 }, // Centro de Colombia
+      zoom: zoom,
+      center: center,
       mapId: 'ASISTENCIA_MAP_ID', // Requerido para AdvancedMarkerElement
       styles: [
         {
@@ -272,8 +349,10 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
       mapOptions
     );
 
-    // Ajustar el zoom para mostrar todas las ubicaciones
-    this.map.fitBounds(bounds);
+    // Ajustar el zoom para mostrar todas las ubicaciones (solo si no se especificó centro/zoom)
+    if (!centerLat && !centerLng) {
+      this.map.fitBounds(bounds);
+    }
 
     // Encontrar el máximo de defensores para normalizar los tamaños
     const maxCount = Math.max(...Array.from(this.ubicacionesUnicas.values()).map(d => d.count));
@@ -384,19 +463,20 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
   }
 
   aplicarFiltros(): void {
+    this.cargando = true;
+    
+    // Primero aplicar filtro de evento si existe
+    let coordinadoresFiltrados: Coordinador[];
+    
     if (this.eventoSeleccionadoId) {
       // Cargar coordinadores que tienen llamadas asociadas al evento seleccionado
-      this.cargando = true;
       this.coordinadorService.obtenerPorEventoEnLlamadas(this.eventoSeleccionadoId).subscribe({
         next: (data) => {
-          // Eliminar duplicados (en caso de que un coordinador tenga múltiples llamadas al mismo evento)
+          // Eliminar duplicados
           const coordinadoresUnicos = Array.from(
             new Map(data.map(c => [c.id, c])).values()
           );
-          this.coordinadores = coordinadoresUnicos;
-          this.totalDefensores = this.coordinadores.length;
-          this.limpiarMapa();
-          this.procesarUbicaciones();
+          this.aplicarFiltrosUbicacion(coordinadoresUnicos);
         },
         error: (error) => {
           this.toastService.error('Error al filtrar por evento');
@@ -405,12 +485,58 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
         }
       });
     } else {
-      // Sin filtro, mostrar todos los coordinadores
-      this.coordinadores = [...this.todosLosCoordinadores];
-      this.totalDefensores = this.coordinadores.length;
-      this.limpiarMapa();
-      this.procesarUbicaciones();
+      // Sin filtro de evento, usar todos los coordinadores
+      this.aplicarFiltrosUbicacion([...this.todosLosCoordinadores]);
     }
+  }
+
+  // Aplicar filtros de ubicación (municipio o sector)
+  aplicarFiltrosUbicacion(coordinadoresBase: Coordinador[]): void {
+    let coordinadoresFiltrados = coordinadoresBase;
+
+    if (this.tipoFiltroUbicacion === 'municipio' && this.municipioSeleccionado) {
+      // Filtrar por municipio
+      coordinadoresFiltrados = coordinadoresBase.filter(c => 
+        c.municipio && c.municipio.trim() === this.municipioSeleccionado
+      );
+    } else if (this.tipoFiltroUbicacion === 'sector' && this.sectorSeleccionado) {
+      // Filtrar por sector (formato: "sector|municipio")
+      const [sector, municipio] = this.sectorSeleccionado.split('|');
+      coordinadoresFiltrados = coordinadoresBase.filter(c => 
+        c.sector && c.sector.trim() === sector &&
+        (!municipio || (c.municipio && c.municipio.trim() === municipio))
+      );
+    }
+
+    this.coordinadores = coordinadoresFiltrados;
+    this.totalDefensores = this.coordinadores.length;
+    this.limpiarMapa();
+    
+    // Si hay un sector seleccionado, centrar el mapa en ese sector
+    if (this.tipoFiltroUbicacion === 'sector' && this.sectorSeleccionado) {
+      const [sector, municipio] = this.sectorSeleccionado.split('|');
+      const sectorInfo = this.sectoresUnicos.find(s => s.sector === sector && s.municipio === municipio);
+      if (sectorInfo && sectorInfo.lat && sectorInfo.lng) {
+        this.procesarUbicacionesPorSector(sectorInfo);
+        return;
+      }
+    }
+    
+    this.procesarUbicaciones();
+  }
+
+  // Procesar ubicaciones cuando se filtra por sector específico
+  procesarUbicacionesPorSector(sectorInfo: { sector: string; municipio: string; lat?: number; lng?: number }): void {
+    // Agrupar por sector específico
+    const ubicacion = `${sectorInfo.sector}, ${sectorInfo.municipio}`;
+    
+    this.ubicacionesUnicas.set(ubicacion, {
+      count: this.coordinadores.length,
+      lat: sectorInfo.lat!,
+      lng: sectorInfo.lng!
+    });
+
+    this.inicializarMapa(sectorInfo.lat, sectorInfo.lng, 15); // Zoom más cercano para sectores
   }
 
   limpiarMapa(): void {
@@ -423,4 +549,3 @@ export class MapaCalorComponent implements OnInit, OnDestroy {
     this.ubicacionesUnicas.clear();
   }
 }
-

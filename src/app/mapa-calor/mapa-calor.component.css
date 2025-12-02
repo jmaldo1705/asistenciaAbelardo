@@ -108,7 +108,7 @@
 .controles-mapa {
   display: flex;
   gap: 15px;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
@@ -122,6 +122,65 @@
   font-weight: 500;
   color: #374151;
   font-size: 0.95rem;
+}
+
+/* Filtro de ubicación */
+.filtro-ubicacion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filtro-ubicacion label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.filtro-tipo-btns {
+  display: flex;
+  gap: 5px;
+}
+
+.btn-tipo-filtro {
+  padding: 8px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.btn-tipo-filtro:hover {
+  border-color: #475569;
+  color: #475569;
+}
+
+.btn-tipo-filtro.activo {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  color: white;
+  border-color: #475569;
+}
+
+.filtro-select {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filtro-select label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.filtro-hint {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .select-evento {
@@ -387,5 +446,77 @@
 
   #mapa-calor {
     height: 350px;
+  }
+
+  .leyenda-content {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Pantallas con altura reducida */
+@media (max-height: 700px) {
+  .mapa-header-section {
+    padding: 15px 20px;
+    margin-bottom: 15px;
+  }
+
+  .stats-cards-mapa {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .stat-card-mapa {
+    padding: 12px;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  #mapa-calor {
+    height: 400px;
+  }
+
+  .mapa-wrapper {
+    padding: 12px;
+  }
+
+  .leyenda {
+    padding: 15px;
+  }
+}
+
+@media (max-height: 600px) {
+  #mapa-calor {
+    height: 300px;
+  }
+
+  .stats-cards-mapa {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .stat-card-mapa {
+    padding: 10px;
+    flex-direction: column;
+    text-align: center;
+    gap: 5px;
+  }
+
+  .stat-icon {
+    font-size: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
   }
 }

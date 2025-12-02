@@ -4,4 +4,6 @@ export interface Evento {
     lugar: string;
     fecha: string; // ISO string
     observaciones?: string;
+    latitud?: number;
+    longitud?: number;
 }

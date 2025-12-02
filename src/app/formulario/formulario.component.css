@@ -279,10 +279,77 @@ textarea.form-control {
   .btn-primary,
   .btn-secondary {
     width: 100%;
+    min-height: 48px;
   }
 
   .mensaje {
     margin: 1.5rem 1rem;
+  }
+
+  .form-control {
+    font-size: 16px; /* Previene zoom en iOS */
+  }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    max-width: 600px;
+  }
+
+  .header {
+    padding: 1.75rem 2rem;
+  }
+
+  form {
+    padding: 2rem;
+  }
+}
+
+/* Pantallas con altura reducida */
+@media (max-height: 700px) {
+  .header {
+    padding: 1.25rem 1.5rem;
+  }
+
+  form {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-actions {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
+  textarea.form-control {
+    min-height: 70px;
+  }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 380px) {
+  .header {
+    padding: 1rem;
+  }
+
+  form {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .form-control {
+    padding: 0.75rem;
   }
 }
 
